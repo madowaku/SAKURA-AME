@@ -20,7 +20,9 @@ import {
   CloudSun,
   Wind as WindIcon,
   CloudLightning,
-  Droplets
+  Droplets,
+  RotateCcw,
+  Ban
 } from 'lucide-react';
 import {
   Note,
@@ -33,14 +35,9 @@ import {
   SoundType,
   PresetEffect
 } from './types';
-import {
-  NOTES,
-  THEMES,
-  GRAVITY_SPEED,
-  PAD_Y_PERCENT,
-  SHISHIODOSHI_PRESETS
-} from './constants';
+import { NOTES, THEMES, GRAVITY_SPEED, PAD_Y_PERCENT, SHISHIODOSHI_PRESETS } from './constants';
 import { audioEngine } from './services/audioEngine';
+import { billingService } from './services/billingService';
 import SakuraVisualizer from './components/SakuraVisualizer';
 import './index.css'; // これが Tailwind の設定を含んでるはずや！
 
@@ -251,6 +248,18 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const initBilling = async () => {
+      await billingService.init();
+      const hasPurchased = await billingService.checkPurchaseHistory();
+      if (hasPurchased) {
+        setIsPremium(true);
+        localStorage.setItem('sakura_ame_premium', 'true');
+      }
+    };
+    initBilling();
+  }, []);
+
+  useEffect(() => {
     currentSoundTypeRef.current = currentSoundType;
   }, [currentSoundType]);
 
@@ -289,7 +298,7 @@ const App: React.FC = () => {
 
     imagesToPreload.forEach((src) => {
       const img = new Image();
-    // ここで src が undefined にならないよう徹底
+      // ここで src が undefined にならないよう徹底
       if (src) {
         const img = new Image();
         img.src = src;
@@ -414,16 +423,26 @@ const App: React.FC = () => {
     closePopups();
   };
 
-  const handlePurchase = () => {
-    setIsPremium(true);
-    localStorage.setItem('sakura_ame_premium', 'true');
-    setShowPremiumModal(false);
+  const handlePurchase = async () => {
+    const result = await billingService.requestPurchase();
 
-    setTimeout(() => {
-      setPurchaseStatus('success');
-      triggerVisualRipple(dimensions.width / 2, dimensions.height / 2, '#FFD700', 300);
+    if (result === 'success') {
+      setIsPremium(true);
+      localStorage.setItem('sakura_ame_premium', 'true');
+      setShowPremiumModal(false);
+
+      setTimeout(() => {
+        setPurchaseStatus('success');
+        triggerVisualRipple(dimensions.width / 2, dimensions.height / 2, '#FFD700', 300);
+        setTimeout(() => setPurchaseStatus(null), 3000);
+      }, 800);
+    } else if (result === 'canceled') {
+      handleCancelPurchase();
+    } else {
+      setShowPremiumModal(false);
+      setPurchaseStatus('failed');
       setTimeout(() => setPurchaseStatus(null), 3000);
-    }, 800);
+    }
   };
 
   const handleCancelPurchase = () => {
@@ -469,8 +488,8 @@ const App: React.FC = () => {
       }
       setParticles(prev => [...prev, ...burst]);
     } // 👈 if文の終わり
-    
-      triggerVisualRipple(x, y, currentTheme.accentColor, 10); // 👈 ここを安全にコメントアウト
+
+    triggerVisualRipple(x, y, currentTheme.accentColor, 10); // 👈 ここを安全にコメントアウト
   }, [isMuted, currentTheme, activeEffect]); // 👈 464行目：ここが正しく閉じていればビルドが通ります
 
   const spawnDrop = (noteId: string) => {
@@ -523,60 +542,60 @@ const App: React.FC = () => {
   }, [isAutoPlaying, currentSongKey, currentStepIndex, isTimerFinished, activeEffect]);
 
   const animate = (time: number) => {
-  if (isTimerFinished || document.hidden) {
+    if (isTimerFinished || document.hidden) {
+      requestRef.current = requestAnimationFrame(animate);
+      return;
+    }
+
+    // 1. 雨粒の処理（filterを1回にまとめる）
+    setDrops(prev => prev.filter(drop => {
+      const newY = drop.y + drop.speed;
+      if (!drop.hasHit && newY >= drop.targetY) {
+        handleHit(drop.noteId, drop.x, drop.targetY);
+        return false; // ヒットしたら即削除
+      }
+      drop.y = newY; // 破壊的代入でメモリ節約
+      return newY < dimensions.height;
+    }).map(d => ({ ...d }))); // Reactのために新しい参照だけ作る
+
+    // 2. 波紋の処理
+    setRipples(prev => prev
+      .map(r => {
+        r.size += (r.size > 50 ? 1.5 : 1.2);
+        r.opacity -= 0.006;
+        return r;
+      })
+      .filter(r => r.opacity > 0)
+      .map(r => ({ ...r }))
+    );
+
+    // 3. パーティクルの処理
+    setParticles(prev => {
+      const MAX = activeEffect === 'blizzard' ? 50 : 30; // さらに絞る
+      const next = prev.slice(-MAX).map(p => {
+        p.x += p.velocity.x;
+        p.y += p.velocity.y + (activeEffect === 'blizzard' ? 0.05 : 0.15);
+        p.opacity -= (activeEffect === 'blizzard' ? 0.006 : 0.012);
+        return { ...p }; // 最後に1回だけコピー
+      }).filter(p => p.opacity > 0);
+
+      if (activeEffect === 'blizzard' && Math.random() > 0.97 && next.length < MAX) {
+        next.push({
+          id: `b-${time}-${Math.random()}`, // 高速なID生成
+          x: -20,
+          y: Math.random() * dimensions.height,
+          rotation: 0,
+          opacity: 1,
+          velocity: { x: 2.5, y: 0 },
+          color: currentTheme.particleColor,
+          size: 8
+        });
+      }
+      return next;
+    });
+
     requestRef.current = requestAnimationFrame(animate);
-    return;
-  }
-
-  // 1. 雨粒の処理（filterを1回にまとめる）
-  setDrops(prev => prev.filter(drop => {
-    const newY = drop.y + drop.speed;
-    if (!drop.hasHit && newY >= drop.targetY) {
-      handleHit(drop.noteId, drop.x, drop.targetY);
-      return false; // ヒットしたら即削除
-    }
-    drop.y = newY; // 破壊的代入でメモリ節約
-    return newY < dimensions.height;
-  }).map(d => ({...d}))); // Reactのために新しい参照だけ作る
-
-  // 2. 波紋の処理
-  setRipples(prev => prev
-    .map(r => {
-      r.size += (r.size > 50 ? 1.5 : 1.2);
-      r.opacity -= 0.006;
-      return r;
-    })
-    .filter(r => r.opacity > 0)
-    .map(r => ({...r}))
-  );
-
-  // 3. パーティクルの処理
-  setParticles(prev => {
-    const MAX = activeEffect === 'blizzard' ? 50 : 30; // さらに絞る
-    const next = prev.slice(-MAX).map(p => {
-      p.x += p.velocity.x;
-      p.y += p.velocity.y + (activeEffect === 'blizzard' ? 0.05 : 0.15);
-      p.opacity -= (activeEffect === 'blizzard' ? 0.006 : 0.012);
-      return {...p}; // 最後に1回だけコピー
-    }).filter(p => p.opacity > 0);
-
-    if (activeEffect === 'blizzard' && Math.random() > 0.97 && next.length < MAX) {
-      next.push({
-        id: `b-${time}-${Math.random()}`, // 高速なID生成
-        x: -20,
-        y: Math.random() * dimensions.height,
-        rotation: 0,
-        opacity: 1,
-        velocity: { x: 2.5, y: 0 },
-        color: currentTheme.particleColor,
-        size: 8
-      });
-    }
-    return next;
-  });
-
-  requestRef.current = requestAnimationFrame(animate);
-};
+  };
 
   useEffect(() => {
     if (hasStarted) requestRef.current = requestAnimationFrame(animate);
@@ -615,54 +634,98 @@ const App: React.FC = () => {
     setRipples([]);
   };
 
+  const resetSoundSettings = () => {
+    const defaultAmbience = {
+      rain: { active: true, volume: 0.3 },
+      wind: { active: false, volume: 0.3 },
+      birds: { active: false, volume: 0.3 },
+      smallBirds: { active: false, volume: 0.3 },
+      river: { active: false, volume: 0.4 },
+      crickets: { active: false, volume: 0.2 },
+      windChime: { active: false, volume: 0.2, isPremium: true },
+      honeybee: { active: false, volume: 0.4, isPremium: true },
+      thunder: { active: false, volume: 0.3, isPremium: true },
+      suikinkutsu: { active: false, volume: 0.4, isPremium: true },
+    };
+
+    setMasterVolume(0.7);
+    setDistantRainVol(0.5);
+    setEavesRainVol(0.5);
+    setLandscapeVol(0.5);
+    setRainDensity(0.15);
+    setAmbience(defaultAmbience);
+    setActiveEffect('none');
+
+    // 即座にオーディオエンジンに反映
+    audioEngine.setMasterVolume(0.7);
+    audioEngine.setLayerVolume('distantRain', 0.5);
+    audioEngine.setLayerVolume('eavesRain', 0.5);
+    audioEngine.setLayerVolume('landscape', 0.5);
+    (Object.keys(defaultAmbience) as AmbienceType[]).forEach((type) => {
+      audioEngine.setAmbience(type, defaultAmbience[type].active, defaultAmbience[type].volume);
+    });
+
+    triggerVisualRipple(dimensions.width / 2, dimensions.height / 2, currentTheme.accentColor, 100);
+  };
+
+  const cancelTimer = () => {
+    setTimerTotal(null);
+    setTimerRemaining(null);
+    setIsTimerFinished(false);
+    setIsShishiodoshiTilting(false);
+    // マスターフェードアウト中かもしれないので、現在のマスターボリュームに戻す
+    audioEngine.setMasterVolume(masterVolume);
+    triggerVisualRipple(dimensions.width / 2, dimensions.height / 2, '#fff', 50);
+  };
+
   if (!hasStarted) {
-  return (
-    <div
-      className="fixed inset-0 h-[100svh] w-full overflow-hidden cursor-pointer bg-[#1c1917] flex flex-col items-center justify-center"
-      onClick={startExperience}
-    >
-      {/* 背景レイヤー */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <img
-  src="bg-start.webp"
-  srcSet="bg-start.webp 1x, bg-start@2x.webp 2x"
-  sizes="100vw"
-  alt="Spring garden background"
-  fetchpriority="high"
-  decoding="sync"
-  loading="eager"
-  className="
+    return (
+      <div
+        className="fixed inset-0 h-[100svh] w-full overflow-hidden cursor-pointer bg-[#1c1917] flex flex-col items-center justify-center"
+        onClick={startExperience}
+      >
+        {/* 背景レイヤー */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <img
+            src="bg-start.webp"
+            srcSet="bg-start.webp 1x, bg-start@2x.webp 2x"
+            sizes="100vw"
+            alt="Spring garden background"
+            fetchpriority="high"
+            decoding="sync"
+            loading="eager"
+            className="
     absolute inset-0
     w-full h-[100svh]
     object-cover
     sm:blur-[2px]
   "
-/>
+          />
 
-        <div className="absolute inset-0 z-10 bg-black/20" />
-      </div>
+          <div className="absolute inset-0 z-10 bg-black/20" />
+        </div>
 
-      {/* UIレイヤー */}
-      <div className="relative z-10 h-full w-full flex items-center justify-center text-sakura-100">
-        <div className="text-center space-y-8 p-12 max-w-lg bg-stone-950/50 sm:backdrop-blur-2xl rounded-3xl border border-white/10 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.6)] animate-ripple-in">
-          <h1 className="text-8xl sm:text-7xl font-serif tracking-[0.4em] text-white mb-2">
-            桜雨
-          </h1>
-          <h2 className="text-xl tracking-[0.3em] text-sakura-100/90 uppercase">
-            Sakura Ame
-          </h2>
-          <div className="w-24 h-[1.5px] bg-white/40 mx-auto my-6" />
-          <p className="text-sm italic tracking-widest">
-            Gentle Rain Instrument
-          </p>
-          <div className="mt-8 px-14 py-4 border border-white/30 bg-white/5 rounded-full text-xs font-bold tracking-[0.4em] uppercase">
-            Start Experience
+        {/* UIレイヤー */}
+        <div className="relative z-10 h-full w-full flex items-center justify-center text-sakura-100">
+          <div className="text-center space-y-8 p-12 max-w-lg bg-stone-950/50 sm:backdrop-blur-2xl rounded-3xl border border-white/10 shadow-[0_35px_60px_-15px_rgba(0,0,0,0.6)] animate-ripple-in">
+            <h1 className="text-8xl sm:text-7xl font-serif tracking-[0.4em] text-white mb-2">
+              桜雨
+            </h1>
+            <h2 className="text-xl tracking-[0.3em] text-sakura-100/90 uppercase">
+              Sakura Ame
+            </h2>
+            <div className="w-24 h-[1.5px] bg-white/40 mx-auto my-6" />
+            <p className="text-sm italic tracking-widest">
+              Gentle Rain Instrument
+            </p>
+            <div className="mt-8 px-14 py-4 border border-white/30 bg-white/5 rounded-full text-xs font-bold tracking-[0.4em] uppercase">
+              Start Experience
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 
 
@@ -675,20 +738,20 @@ const App: React.FC = () => {
         {THEMES.map((theme) => (
           <div key={theme.id} className={`absolute inset-0 transition-opacity duration-[1500ms] pointer-events-none ${currentTheme.id === theme.id ? 'opacity-100' : 'opacity-0'}`}>
             <img
-  src={theme.bgImage}
-  srcSet={`${theme.bgImage} 1200w, ${theme.bgImage2x} 2400w`}
-  sizes="100vw"
-  // 明示的なサイズ指定（CLS対策）
-  width="1200"
-  height="800"
-  // CSSでアスペクト比を維持
-  style={{ aspectRatio: '3 / 2' }} // 1200:800 = 3:2
-  className="w-full h-full object-cover scale-[1.02]"
-  alt=""
-  decoding="async"
-  loading={currentTheme.id === theme.id ? "eager" : "lazy"} 
-  fetchpriority={currentTheme.id === theme.id ? "high" : "low"}
-/>
+              src={theme.bgImage}
+              srcSet={`${theme.bgImage} 1200w, ${theme.bgImage2x} 2400w`}
+              sizes="100vw"
+              // 明示的なサイズ指定（CLS対策）
+              width="1200"
+              height="800"
+              // CSSでアスペクト比を維持
+              style={{ aspectRatio: '3 / 2' }} // 1200:800 = 3:2
+              className="w-full h-full object-cover scale-[1.02]"
+              alt=""
+              decoding="async"
+              loading={currentTheme.id === theme.id ? "eager" : "lazy"}
+              fetchpriority={currentTheme.id === theme.id ? "high" : "low"}
+            />
 
             <div className={`absolute inset-0 bg-gradient-to-b ${theme.bgGradient} opacity-20`}></div>
             <div className="absolute inset-0" style={{ backgroundColor: theme.overlayColor }}></div>
@@ -795,6 +858,14 @@ const App: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            <div className="w-full h-[1px] bg-white/10 my-2"></div>
+            <button
+              onClick={resetSoundSettings}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] text-white/70 uppercase tracking-[.25em] transition-all"
+            >
+              <RotateCcw size={14} /> デフォルトに戻す
+            </button>
 
             <div className="w-full h-[1px] bg-white/10 my-2"></div>
             <div className="space-y-4">
@@ -951,8 +1022,14 @@ const App: React.FC = () => {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-2 bg-stone-800 rounded-full -z-10"></div>
             </div>
           </div>
-          <div className="flex flex-col items-center mt-4">
+          <div className="flex flex-col items-center mt-4 gap-4">
             <span className="text-xl font-serif text-white tracking-[0.3em] bg-emerald-950/30 border border-white/10 px-10 py-3 rounded-full shadow-3xl backdrop-blur-3xl">{Math.floor(timerRemaining / 60)}:{String(timerRemaining % 60).padStart(2, '0')}</span>
+            <button
+              onClick={cancelTimer}
+              className="flex items-center gap-2 px-6 py-2 bg-black/40 hover:bg-black/60 text-white/60 hover:text-white border border-white/10 rounded-full text-[10px] uppercase tracking-widest transition-all"
+            >
+              <Ban size={12} /> キャンセル
+            </button>
           </div>
         </div>
       )}
