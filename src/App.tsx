@@ -157,6 +157,7 @@ const App: React.FC = () => {
   const [showEisho, setShowEisho] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [purchaseStatus, setPurchaseStatus] = useState<'success' | 'canceled' | 'failed' | null>(null);
+  const [isBillingReady, setIsBillingReady] = useState(false);
 
   const [isPremium, setIsPremium] = useState<boolean>(() => {
     return localStorage.getItem('sakura_ame_premium') === 'true';
@@ -227,6 +228,13 @@ const App: React.FC = () => {
   const requestRef = useRef<number>(null);
 
   useEffect(() => {
+    const localPremium = localStorage.getItem('sakura_ame_premium');
+    if (localPremium === 'true') {
+      setIsPremium(true);
+    }
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('sakura_ame_masterVolume', masterVolume.toString());
     localStorage.setItem('sakura_ame_distantRainVol', distantRainVol.toString());
     localStorage.setItem('sakura_ame_eavesRainVol', eavesRainVol.toString());
@@ -248,27 +256,36 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const initBilling = async () => {
-      await billingService.init();
-      const hasPurchased = await billingService.checkPurchaseHistory();
-      if (hasPurchased) {
-        setIsPremium(true);
-        localStorage.setItem('sakura_ame_premium', 'true');
-      }
-    };
-    initBilling();
-  }, []);
+    let isMounted = true;
 
-  useEffect(() => {
     const initBilling = async () => {
-      await billingService.init();
-      const isOwned = await billingService.checkPurchaseHistory();
-      if (isOwned) {
-        setIsPremium(true);
-        localStorage.setItem('isPremium', 'true');
+      try {
+        await billingService.init();
+
+        try {
+          const hasPurchased = await billingService.checkPurchaseHistory();
+          if (isMounted && hasPurchased) {
+            setIsPremium(true);
+            localStorage.setItem('sakura_ame_premium', 'true');
+          }
+        } catch (historyError) {
+          console.error("History check failed:", historyError);
+        }
+
+      } catch (initError) {
+        console.error("Billing init error:", initError);
+      } finally {
+        if (isMounted) {
+          setIsBillingReady(true); // 👈 必ず実行
+        }
       }
     };
+
     initBilling();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -439,50 +456,71 @@ const App: React.FC = () => {
     if (purchaseStatus === 'processing') return;
 
     try {
-      // 1. 購入ボタンを押した瞬間に、もう一度所有状況を確認する（追加ポイント）
+      setPurchaseStatus('processing');
+
+      // 念のため再確認
       const alreadyOwned = await billingService.checkPurchaseHistory();
 
       if (alreadyOwned) {
-        // すでに持っていたら、そのまま成功画面へ流す
-        setPurchaseStatus('success');
         setIsPremium(true);
         localStorage.setItem('sakura_ame_premium', 'true');
+        setPurchaseStatus('success');
 
         setTimeout(() => {
           setPurchaseStatus(null);
           setShowPremiumModal(false);
-        }, 4000);
+        }, 3000);
+
         return;
       }
 
-      // 2. まだ持っていない場合のみ、通常の購入処理へ
+      // 通常購入
       const result = await billingService.requestPurchase();
-      setPurchaseStatus(result);
 
       if (result === 'success') {
         setIsPremium(true);
         localStorage.setItem('sakura_ame_premium', 'true');
+        setPurchaseStatus('success');
+
         setTimeout(() => {
           setPurchaseStatus(null);
           setShowPremiumModal(false);
-        }, 4000);
+        }, 3000);
+
+      } else if (result === 'canceled') {
+        setPurchaseStatus('canceled');
+        setTimeout(() => setPurchaseStatus(null), 2000);
+
       } else {
-        // 失敗・キャンセル時も、操作不能にならないよう必ずリセット
+        setPurchaseStatus('failed');
+        setTimeout(() => setPurchaseStatus(null), 2000);
+      }
+
+    } catch (error) {
+      console.error("Purchase error:", error);
+
+      // 👇 ここが重要
+      if (error?.code === 'ITEM_ALREADY_OWNED') {
+        setIsPremium(true);
+        localStorage.setItem('sakura_ame_premium', 'true');
+        setPurchaseStatus('success');
+
         setTimeout(() => {
           setPurchaseStatus(null);
+          setShowPremiumModal(false);
         }, 3000);
+
+      } else if (error?.code === 'USER_CANCELED') {
+        setPurchaseStatus('canceled');
+        setTimeout(() => setPurchaseStatus(null), 2000);
+
+      } else {
+        setPurchaseStatus('failed');
+        setTimeout(() => setPurchaseStatus(null), 2000);
       }
-    } catch (error) {
-      setPurchaseStatus('failed');
-      setTimeout(() => setPurchaseStatus(null), 3000);
     }
   };
 
-  const handleCancelPurchase = () => {
-    setShowPremiumModal(false);
-    setPurchaseStatus('canceled');
-    setTimeout(() => setPurchaseStatus(null), 3000);
-  };
 
   // 波紋を生成する関数
   const triggerVisualRipple = (x: number, y: number, color: string, startSize: number = 10) => {
@@ -1014,7 +1052,14 @@ const App: React.FC = () => {
               </p>
               <p className="text-stone-300 text-xs font-serif italic tracking-[0.2em] mt-2">静けさを、もう少し。</p>
             </div>
-            <button onClick={handlePurchase} className="w-full py-4 bg-gradient-to-r from-sakura-600 to-sakura-500 rounded-xl text-sakura-50 font-bold uppercase tracking-widest text-xs shadow-xl transition-transform hover:scale-105 active:scale-95">UNLOCK FULL GARDEN</button>
+            <button
+              onClick={handlePurchase}
+              disabled={!isBillingReady || purchaseStatus === 'processing'}
+              className="w-full py-4 bg-gradient-to-r from-sakura-600 to-sakura-500 rounded-xl text-sakura-50 font-bold uppercase tracking-widest text-xs shadow-xl transition-transform hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isBillingReady ? "UNLOCK FULL GARDEN" : "Preparing the garden..."}
+            </button>
+
             <button onClick={() => setShowPremiumModal(false)} className="text-stone-500 text-xs uppercase tracking-widest mt-2 block mx-auto hover:text-stone-300 transition-colors">STAY HERE FOR NOW</button>
           </div>
         </div>

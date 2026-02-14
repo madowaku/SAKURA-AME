@@ -35,7 +35,15 @@ class BillingService {
             console.error('Payment Request API is not supported');
             return 'failed';
         }
-
+     // 👇 ここを追加（超重要）
+        if (this.service) {
+            const existing = await this.service.listPurchases();
+            const alreadyOwned = existing.some((p: any) => p.itemId === this.ITEM_ID);
+            if (alreadyOwned) {
+                return 'success';
+            }
+        }
+    
         const paymentMethods = [{
             supportedMethods: 'https://play.google.com/billing',
             data: {
@@ -76,6 +84,15 @@ class BillingService {
             return 'success';
 
         } catch (e: any) {
+                // 👇 所有済みでもここに来ることがある
+            if (this.service) {
+                const existing = await this.service.listPurchases();
+                const alreadyOwned = existing.some((p: any) => p.itemId === this.ITEM_ID);
+                if (alreadyOwned) {
+                    return 'success';
+                }
+            }
+            
             if (e.name === 'AbortError') {
                 return 'canceled';
             }
