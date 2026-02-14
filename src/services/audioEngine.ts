@@ -188,7 +188,7 @@ class AudioEngine {
         stopTime = t + 1.0;
         break;
       case 'Suikin': {
-        osc.type = 'triangle';
+        osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, t);
         gain.gain.setValueAtTime(0, t);
         gain.gain.linearRampToValueAtTime(0.4, t + 0.02);
