@@ -54,6 +54,15 @@ Premium unlocks:
 
 ---
 
+## 📱 Platform
+
+- Google Play (TWA)
+
+## Author
+
+- madowaku
+---
+
 ## 🚀 Development
 
 ### Prerequisites
@@ -65,10 +74,4 @@ Premium unlocks:
 npm install
 npm run dev
 
-📱 Platform
 
-Google Play (TWA)
-
-Author
-
-madowaku
