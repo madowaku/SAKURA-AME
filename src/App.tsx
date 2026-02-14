@@ -260,6 +260,18 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const initBilling = async () => {
+      await billingService.init();
+      const isOwned = await billingService.checkPurchaseHistory();
+      if (isOwned) {
+        setIsPremium(true);
+        localStorage.setItem('isPremium', 'true');
+      }
+    };
+    initBilling();
+  }, []);
+
+  useEffect(() => {
     currentSoundTypeRef.current = currentSoundType;
   }, [currentSoundType]);
 
@@ -424,22 +436,38 @@ const App: React.FC = () => {
   };
 
   const handlePurchase = async () => {
-    // 1. 処理開始
+    if (purchaseStatus === 'processing') return;
+
     try {
+      // 1. 購入ボタンを押した瞬間に、もう一度所有状況を確認する（追加ポイント）
+      const alreadyOwned = await billingService.checkPurchaseHistory();
+
+      if (alreadyOwned) {
+        // すでに持っていたら、そのまま成功画面へ流す
+        setPurchaseStatus('success');
+        setIsPremium(true);
+        localStorage.setItem('sakura_ame_premium', 'true');
+
+        setTimeout(() => {
+          setPurchaseStatus(null);
+          setShowPremiumModal(false);
+        }, 4000);
+        return;
+      }
+
+      // 2. まだ持っていない場合のみ、通常の購入処理へ
       const result = await billingService.requestPurchase();
-      setPurchaseStatus(result); // ここで「風が〜」や「庭は〜」が表示される
+      setPurchaseStatus(result);
 
       if (result === 'success') {
         setIsPremium(true);
-        localStorage.setItem('isPremium', 'true');
-
-        // 成功時は4秒後にすべて閉じる
+        localStorage.setItem('sakura_ame_premium', 'true');
         setTimeout(() => {
           setPurchaseStatus(null);
           setShowPremiumModal(false);
         }, 4000);
       } else {
-        // 失敗・キャンセル時は3秒後にステータス表示だけ消す（モーダルに戻る）
+        // 失敗・キャンセル時も、操作不能にならないよう必ずリセット
         setTimeout(() => {
           setPurchaseStatus(null);
         }, 3000);
