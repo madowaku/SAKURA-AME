@@ -3,7 +3,9 @@
        src="https://github.com/user-attachments/assets/627fdea0-2cca-4266-b40e-7e90fdc437fa" />
 </p>
 
-# 桜雨 - SakuraAme
+雨が、音になる。
+
+# 桜雨 – SakuraAme
 
 静かな雨と、五音のタングドラム。
 
@@ -38,7 +40,7 @@
 
 ## 💎 Premium
 
-Premium unlocks:
+Premium では、庭が静かに深まります。
 
 - すべての音色
 - 深い雨音レイヤー
@@ -46,7 +48,7 @@ Premium unlocks:
 
 ---
 
-## 🛠 Tech Stack
+## 🛠 Built with
 
 - Vite
 - React
@@ -64,6 +66,10 @@ Premium unlocks:
 - madowaku
 ---
 
+静かな庭で、お会いしましょう。
+
+---
+
 ## 🚀 Development
 
 ### Prerequisites
@@ -74,5 +80,6 @@ Premium unlocks:
 ```bash
 npm install
 npm run dev
+
 
 
