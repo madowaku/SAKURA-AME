@@ -477,7 +477,7 @@ const App: React.FC = () => {
       // 通常購入
       const result = await billingService.requestPurchase();
 
-      if (result === 'success') {
+      if (result === 'success' || alreadyOwned) {
         setIsPremium(true);
         localStorage.setItem('sakura_ame_premium', 'true');
         setPurchaseStatus('success');
@@ -1067,7 +1067,10 @@ const App: React.FC = () => {
 
       /* 成功時のみ全画面ロック */
       {purchaseStatus === 'success' && (
-        <div onClick={() => setPurchaseStatus(null)} // 👈 クリックで閉じれるように追加
+        <div onClick={() => {
+              setPurchaseStatus(null);
+              setShowPremiumModal(false);
+            }} // 👈 クリックで閉じれるように追加
           className="absolute inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-700 pointer-events-auto">
           <div className="text-center space-y-4">
             <p className="text-white text-xl font-light tracking-[0.3em]">
