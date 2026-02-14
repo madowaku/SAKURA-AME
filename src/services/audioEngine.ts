@@ -5,7 +5,7 @@ class AudioEngine {
   private masterGain: GainNode | null = null;
   private compressor: DynamicsCompressorNode | null = null;
   private mainFilter: BiquadFilterNode | null = null;
-  private shishiodoshiGain: GainNode | null = null; 
+  private shishiodoshiGain: GainNode | null = null;
 
   private ambienceState: Record<AmbienceType, { active: boolean, volume: number, nodes?: AudioNode[] }> = {
     rain: { active: false, volume: 0 },
@@ -188,13 +188,13 @@ class AudioEngine {
         stopTime = t + 1.0;
         break;
       case 'Suikin': {
-        osc.type = 'sine';
+        osc.type = 'triangle';
         osc.frequency.setValueAtTime(freq, t);
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.25, t + 0.06);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 5.0);
+        gain.gain.linearRampToValueAtTime(0.4, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 4.0);
         osc.connect(gain);
-        stopTime = t + 5.0;
+        stopTime = t + 4.0;
         break;
       }
     }

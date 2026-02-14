@@ -668,6 +668,7 @@ const App: React.FC = () => {
         setIsPremium(true);
         localStorage.setItem('sakura_ame_premium', 'true');
         setPurchaseStatus('success');
+        setShowPremiumModal(false);
 
         setTimeout(() => {
           setPurchaseStatus(null);
@@ -675,10 +676,12 @@ const App: React.FC = () => {
         }, 3000);
 
       } else if (result === 'canceled') {
+        setShowPremiumModal(false);
         setPurchaseStatus('canceled');
         setTimeout(() => setPurchaseStatus(null), 2000);
 
       } else {
+        setShowPremiumModal(false);
         setPurchaseStatus('failed');
         setTimeout(() => setPurchaseStatus(null), 2000);
       }
@@ -699,10 +702,12 @@ const App: React.FC = () => {
 
       } else if (error?.code === 'USER_CANCELED') {
         setPurchaseStatus('canceled');
+        setShowPremiumModal(false);
         setTimeout(() => setPurchaseStatus(null), 2000);
 
       } else {
         setPurchaseStatus('failed');
+        setShowPremiumModal(false);
         setTimeout(() => setPurchaseStatus(null), 2000);
       }
     }
@@ -1258,7 +1263,7 @@ const App: React.FC = () => {
               setPurchaseStatus(null);
               setShowPremiumModal(false);
             }} // 👈 クリックで閉じれるように追加
-          className="absolute inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-700 pointer-events-auto">
+          className="absolute inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-700 pointer-events-none">
           <div className="text-center space-y-4">
             <p className="text-white text-xl font-light tracking-[0.3em]">
               The garden quietly deepens.
