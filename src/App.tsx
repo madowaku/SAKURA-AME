@@ -424,32 +424,25 @@ const App: React.FC = () => {
   };
 
   const handlePurchase = async () => {
-    // 多重クリック防止
-    if (purchaseStatus === 'processing') return;
-
+    // 1. 処理開始
     try {
       const result = await billingService.requestPurchase();
+      setPurchaseStatus(result); // ここで「風が〜」や「庭は〜」が表示される
 
       if (result === 'success') {
-        // 1. まず成功メッセージを表示（モーダルはまだ裏にある）
-        setPurchaseStatus('success');
+        setIsPremium(true);
+        localStorage.setItem('isPremium', 'true');
 
-        // 2. 4秒後に全てを完了状態にする
+        // 成功時は4秒後にすべて閉じる
         setTimeout(() => {
-          setIsPremium(true);
-          localStorage.setItem('sakura_ame_premium', 'true');
           setPurchaseStatus(null);
           setShowPremiumModal(false);
-          triggerVisualRipple(dimensions.width / 2, dimensions.height / 2, '#FFD700', 300);
         }, 4000);
-      } else if (result === 'canceled') {
-        // Google Playのシートでキャンセルした場合
-        handleCancelPurchase();
       } else {
-        // 失敗時
-        setShowPremiumModal(false);
-        setPurchaseStatus('failed');
-        setTimeout(() => setPurchaseStatus(null), 3000);
+        // 失敗・キャンセル時は3秒後にステータス表示だけ消す（モーダルに戻る）
+        setTimeout(() => {
+          setPurchaseStatus(null);
+        }, 3000);
       }
     } catch (error) {
       setPurchaseStatus('failed');
@@ -1000,8 +993,10 @@ const App: React.FC = () => {
       )}
 
       {purchaseStatus && (
-        <div className="absolute inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-1000">
-          <div className="text-center space-y-4">
+        <div
+          onClick={() => setPurchaseStatus(null)} // 👈 クリックで閉じれるように追加
+          className="absolute inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-1000">
+          <div className="text-center space-y-4 pointer-events-none">
             {purchaseStatus === 'success' && (
               <>
                 <p className="text-white text-xl font-light tracking-[0.3em]">The garden quietly deepens.</p>
