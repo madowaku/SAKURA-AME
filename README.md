@@ -1,20 +1,74 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+  <img width="1200" alt="SakuraAme Banner" src="（ここに桜雨のバナーURL）" />
 </div>
 
-# Run and deploy your AI Studio app
+# 桜雨 - SakuraAme
 
-This contains everything you need to run your app locally.
+静かな雨と、五音のタングドラム。
 
-View your app in AI Studio: https://ai.studio/apps/drive/1tgp1l_lgzhKNEW-gwsJmMtalbxkG1iw0
+桜の花びらに落ちる雨音が、
+やさしく空間を満たします。
 
-## Run Locally
+深夜の作業、読書、瞑想、
+あるいはただ、何もせずにいる時間のために。
 
-**Prerequisites:**  Node.js
+---
 
+## 🌸 Concept
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+「操作しない音アプリ」
+
+雨は、ただ降り続ける。
+音は、触れたときだけそっと響く。
+
+派手な演出や通知はありません。
+静けさを壊さない設計を目指しています。
+
+---
+
+## 🎵 Features
+
+- 五音花びらスリットのタングドラム音
+- 柔らかな雨音ループ
+- 画面タップで優しい倍音
+- Premium モード（静かな雨）
+
+---
+
+## 💎 Premium
+
+Premium unlocks:
+
+- すべての音色
+- 深い雨音レイヤー
+- より落ち着いた空間演出
+
+---
+
+## 🛠 Tech Stack
+
+- Vite
+- React
+- TailwindCSS
+- Google Play Billing (TWA)
+
+---
+
+## 🚀 Development
+
+### Prerequisites
+- Node.js
+
+### Run locally
+
+```bash
+npm install
+npm run dev
+
+📱 Platform
+
+Google Play (TWA)
+
+Author
+
+madowaku
