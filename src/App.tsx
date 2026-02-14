@@ -1065,30 +1065,36 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {purchaseStatus && (
-        <div
-          onClick={() => setPurchaseStatus(null)} // 👈 クリックで閉じれるように追加
-          className="absolute inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-1000">
-          <div className="text-center space-y-4 pointer-events-none">
-            {purchaseStatus === 'success' && (
-              <>
-                <p className="text-white text-xl font-light tracking-[0.3em]">The garden quietly deepens.</p>
-                <p className="text-stone-400 text-sm font-serif tracking-[0.4em]">庭は、静かに深まりました。</p>
-              </>
-            )}
-            {purchaseStatus === 'canceled' && (
-              <>
-                <p className="text-white text-xl font-light tracking-[0.3em]">The garden remains as it is.</p>
-                <p className="text-stone-400 text-sm font-serif tracking-[0.4em]">庭は、そのままの姿で在ります。</p>
-              </>
-            )}
-            {purchaseStatus === 'failed' && (
-              <>
-                <p className="text-white text-xl font-light tracking-[0.3em]">The wind disrupted the moment.</p>
-                <p className="text-stone-400 text-sm font-serif tracking-[0.4em]">風が、ひとときを乱しました。</p>
-              </>
-            )}
+      /* 成功時のみ全画面ロック */
+      {purchaseStatus === 'success' && (
+        <div onClick={() => setPurchaseStatus(null)} // 👈 クリックで閉じれるように追加
+          className="absolute inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-700 pointer-events-auto">
+          <div className="text-center space-y-4">
+            <p className="text-white text-xl font-light tracking-[0.3em]">
+              The garden quietly deepens.
+            </p>
+            <p className="text-stone-400 text-sm font-serif tracking-[0.4em]">
+              庭は、静かに深まりました。
+            </p>
           </div>
+        </div>
+      )}
+
+      /* 失敗時はトースト表示（画面ロックしない） */
+      {purchaseStatus === 'failed' && (
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[210]
+                  bg-black/70 backdrop-blur-xl px-6 py-3 rounded-2xl
+                  text-white text-sm animate-in fade-in duration-500">
+          風が、ひとときを乱しました。
+        </div>
+      )}
+
+      /* キャンセルも同様 */
+      {purchaseStatus === 'canceled' && (
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[210]
+                  bg-black/70 backdrop-blur-xl px-6 py-3 rounded-2xl
+                  text-white text-sm animate-in fade-in duration-500">
+          庭は、そのままの姿で在ります。
         </div>
       )}
 
