@@ -424,22 +424,34 @@ const App: React.FC = () => {
   };
 
   const handlePurchase = async () => {
-    const result = await billingService.requestPurchase();
+    // 多重クリック防止
+    if (purchaseStatus === 'processing') return;
 
-    if (result === 'success') {
-      setIsPremium(true);
-      localStorage.setItem('sakura_ame_premium', 'true');
-      setShowPremiumModal(false);
+    try {
+      const result = await billingService.requestPurchase();
 
-      setTimeout(() => {
+      if (result === 'success') {
+        // 1. まず成功メッセージを表示（モーダルはまだ裏にある）
         setPurchaseStatus('success');
-        triggerVisualRipple(dimensions.width / 2, dimensions.height / 2, '#FFD700', 300);
+
+        // 2. 4秒後に全てを完了状態にする
+        setTimeout(() => {
+          setIsPremium(true);
+          localStorage.setItem('sakura_ame_premium', 'true');
+          setPurchaseStatus(null);
+          setShowPremiumModal(false);
+          triggerVisualRipple(dimensions.width / 2, dimensions.height / 2, '#FFD700', 300);
+        }, 4000);
+      } else if (result === 'canceled') {
+        // Google Playのシートでキャンセルした場合
+        handleCancelPurchase();
+      } else {
+        // 失敗時
+        setShowPremiumModal(false);
+        setPurchaseStatus('failed');
         setTimeout(() => setPurchaseStatus(null), 3000);
-      }, 800);
-    } else if (result === 'canceled') {
-      handleCancelPurchase();
-    } else {
-      setShowPremiumModal(false);
+      }
+    } catch (error) {
       setPurchaseStatus('failed');
       setTimeout(() => setPurchaseStatus(null), 3000);
     }
@@ -969,7 +981,7 @@ const App: React.FC = () => {
       )}
 
       {showPremiumModal && (
-        <div className="absolute inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="absolute inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-stone-900 border border-sakura-500/30 rounded-3xl p-10 max-w-sm w-full shadow-2xl relative overflow-hidden text-center space-y-6">
             <Flower size={32} className="text-sakura-400 mx-auto animate-pulse" />
             <h3 className="text-2xl font-serif text-white tracking-widest">静寂を深める</h3>
@@ -982,13 +994,13 @@ const App: React.FC = () => {
               <p className="text-stone-300 text-xs font-serif italic tracking-[0.2em] mt-2">静けさを、もう少し。</p>
             </div>
             <button onClick={handlePurchase} className="w-full py-4 bg-gradient-to-r from-sakura-600 to-sakura-500 rounded-xl text-sakura-50 font-bold uppercase tracking-widest text-xs shadow-xl transition-transform hover:scale-105 active:scale-95">UNLOCK FULL GARDEN</button>
-            <button onClick={handleCancelPurchase} className="text-stone-500 text-xs uppercase tracking-widest mt-2 block mx-auto hover:text-stone-300 transition-colors">STAY HERE FOR NOW</button>
+            <button onClick={() => setShowPremiumModal(false)} className="text-stone-500 text-xs uppercase tracking-widest mt-2 block mx-auto hover:text-stone-300 transition-colors">STAY HERE FOR NOW</button>
           </div>
         </div>
       )}
 
       {purchaseStatus && (
-        <div className="absolute inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-1000">
+        <div className="absolute inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-1000">
           <div className="text-center space-y-4">
             {purchaseStatus === 'success' && (
               <>

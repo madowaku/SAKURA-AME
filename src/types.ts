@@ -55,6 +55,7 @@ export interface Theme {
   name: string;
   bgGradient: string;
   bgImage: string;
+  bgImage2x?: string;
   drumColor: string;
   rainColor: string;
   accentColor: string;
