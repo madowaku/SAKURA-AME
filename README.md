@@ -1,6 +1,6 @@
-<div align="center">
-  <img width="1200" alt="SakuraAme Banner" src="<img width="1024" height="500" alt="雨が、音になる。" src="https://github.com/user-attachments/assets/627fdea0-2cca-4266-b40e-7e90fdc437fa"/>
-</div>
+<p align="center">
+  <img width="1200" src="https://github.com/user-attachments/assets/627fdea0-2cca-4266-b40e-7e90fdc437fa" />
+</p>
 
 # 桜雨 - SakuraAme
 
