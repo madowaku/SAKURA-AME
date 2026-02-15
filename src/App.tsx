@@ -470,7 +470,7 @@ const App: React.FC = () => {
 
       setTimeout(() => {
         setPurchaseStatus(null);
-      }, 2500);
+      }, 4000);
 
       return;
     }
@@ -486,7 +486,7 @@ const App: React.FC = () => {
 
       setTimeout(() => {
         setPurchaseStatus(null);
-      }, 2500);
+      }, 4000);
 
     } else if (result === 'canceled') {
       setPurchaseStatus('canceled');
@@ -497,7 +497,7 @@ const App: React.FC = () => {
       setTimeout(() => setPurchaseStatus(null), 2000);
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Purchase error:", error);
 
     if (error?.code === 'ITEM_ALREADY_OWNED') {
@@ -509,7 +509,7 @@ const App: React.FC = () => {
 
       setTimeout(() => {
         setPurchaseStatus(null);
-      }, 2500);
+      }, 4000);
 
     } else if (error?.code === 'USER_CANCELED') {
       setPurchaseStatus('canceled');
@@ -1092,21 +1092,27 @@ const App: React.FC = () => {
   </div>
 )}
 
+      {/* 修正: 失敗時にもスタイルを適用 */}
       {purchaseStatus === 'failed' && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[300]
-          bg-black/70 backdrop-blur-xl px-6 py-3 rounded-2xl
-          text-white text-sm">
-          風が、ひとときを乱しました。
-        </div>
-      )}
+  <div 
+    className="fixed inset-0 z- flex items-center justify-center bg-black/80 backdrop-blur-xl"
+  >
+    <div className="text-sakura-200 font-serif tracking-widest">
+      風が、ひとときを乱しました。
+    </div>
+  </div>
+)}
 
+{/* 修正: キャンセル時にもスタイルを適用 */}
       {purchaseStatus === 'canceled' && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[300]
-          bg-black/70 backdrop-blur-xl px-6 py-3 rounded-2xl
-          text-white text-sm">
-         庭は、そのままの姿で在ります。
-        </div>
-      )}
+  <div 
+    className="fixed inset-0 z- flex items-center justify-center bg-black/80 backdrop-blur-xl"
+  >
+    <div className="text-stone-400 font-serif tracking-widest">
+      庭は、そのままの姿で在ります。
+    </div>
+  </div>
+)}
 
 
       {timerRemaining !== null && !isTimerFinished && (
