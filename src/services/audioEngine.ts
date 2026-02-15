@@ -181,6 +181,67 @@ class AudioEngine {
         stopTime = t + 2.8;
         break;
       }
+      case 'Ether': {
+        // 「空」: 浮遊感のある、ふわっとした音
+        osc.type = 'triangle'; // 三角波で柔らかく
+
+        // 2つ目のオシレーターでデチューン（音程を少しずらす）させてコーラス効果を作る
+        const osc2 = this.ctx.createOscillator();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(freq * 1.005, t); // わずかにずらす
+
+        // フィルターで高音を削って丸くする
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 2000;
+
+        osc.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+
+        // エンベロープ: アタックを遅くして「ふわっ」と入る
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.15, t + 0.3); // 0.3秒かけてゆっくり立ち上がる
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 4.0); // 長い余韻
+
+        osc.frequency.setValueAtTime(freq, t);
+        
+        osc2.start(t);
+        osc2.stop(t + 4.0);
+
+        stopTime = t + 4.0;
+        break;
+      }
+
+      case 'Deep': {
+        // 「深響」: 重低音を含む、深く沈むような音
+        osc.type = 'sine';
+
+        // サブベース（1オクターブ下の音）を追加
+        const subOsc = this.ctx.createOscillator();
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(freq * 0.5, t);
+
+        const subGain = this.ctx.createGain();
+        subGain.gain.value = 0.6; // サブの音量バランス
+
+        subOsc.connect(subGain);
+        subGain.connect(gain);
+        osc.connect(gain);
+
+        // エンベロープ: 重厚感を出す
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.5, t + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
+
+        osc.frequency.setValueAtTime(freq, t);
+        
+        subOsc.start(t);
+        subOsc.stop(t + 3.5);
+
+        stopTime = t + 3.5;
+        break;
+      }
       case 'Bamboo': {
         osc.type = 'triangle';
 
@@ -339,7 +400,7 @@ class AudioEngine {
                 filterDistant.frequency.value = 800; 
                 const gainDistant = this.ctx!.createGain();
                 gainDistant.gain.setValueAtTime(0, this.ctx!.currentTime);
-                gainDistant.gain.setTargetAtTime(vol * 0.2 * this.layerVolumes.distantRain, this.ctx!.currentTime, 2.0);
+                gainDistant.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.distantRain, this.ctx!.currentTime, 2.0);
 
                 const sourceEaves = this.ctx!.createBufferSource();
                 sourceEaves.buffer = this.buffers['rain'];
@@ -350,7 +411,7 @@ class AudioEngine {
                 filterEaves.Q.value = 0.5;
                 const gainEaves = this.ctx!.createGain();
                 gainEaves.gain.setValueAtTime(0, this.ctx!.currentTime);
-                gainEaves.gain.setTargetAtTime(vol * 0.1 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 2.5);
+                gainEaves.gain.setTargetAtTime(vol * 0.08 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 2.5);
 
                 sourceDistant.connect(filterDistant);
                 filterDistant.connect(gainDistant);
@@ -400,8 +461,8 @@ class AudioEngine {
              if (type === 'rain') {
                 const gainDistant = this.ambienceState['rain'].nodes![1] as GainNode;
                 const gainEaves = this.ambienceState['rain'].nodes![4] as GainNode;
-                gainDistant.gain.setTargetAtTime(vol * 0.35 * this.layerVolumes.distantRain, this.ctx!.currentTime, 1.0);
-                gainEaves.gain.setTargetAtTime(vol * 0.25 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 1.0);
+                gainDistant.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.distantRain, this.ctx!.currentTime, 1.0);
+                gainEaves.gain.setTargetAtTime(vol * 0.08 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 1.0);
              } else {
                 const gain = this.ambienceState[type as AmbienceType].nodes![1] as GainNode;
                 let finalVol = vol * 0.45;
