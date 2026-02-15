@@ -263,19 +263,61 @@ class AudioEngine {
   }
 
   playTempleBell() {
-    if (!this.ctx || !this.masterGain) return;
-    const t = this.ctx.currentTime;
-    const bellGain = this.ctx.createGain();
-    bellGain.connect(this.masterGain);
-    bellGain.gain.setValueAtTime(0, t);
-    bellGain.gain.linearRampToValueAtTime(Vol * 1.8, t + 0.01);
-    bellGain.gain.exponentialRampToValueAtTime(0.001, t + 15);
-    const osc = this.ctx.createOscillator();
-    osc.frequency.setValueAtTime(82.41, t);
-    osc.connect(bellGain);
-    osc.start(t);
-    osc.stop(t + 15);
-  }
+  if (!this.ctx || !this.masterGain) return;
+
+  const t = this.ctx.currentTime;
+
+  const bellGain = this.ctx.createGain();
+  bellGain.connect(this.masterGain);
+
+  bellGain.gain.setValueAtTime(0, t);
+  bellGain.gain.linearRampToValueAtTime(1.2, t + 0.02);
+  bellGain.gain.exponentialRampToValueAtTime(0.001, t + 18);
+
+  // 基音（低い）
+  const fundamental = this.ctx.createOscillator();
+  fundamental.type = 'sine';
+  fundamental.frequency.setValueAtTime(82.41, t);
+
+  // 倍音１
+  const overtone1 = this.ctx.createOscillator();
+  overtone1.type = 'sine';
+  overtone1.frequency.setValueAtTime(82.41 * 2.1, t);
+
+  // 倍音２（少し不協和）
+  const overtone2 = this.ctx.createOscillator();
+  overtone2.type = 'sine';
+  overtone2.frequency.setValueAtTime(82.41 * 2.9, t);
+
+  // 高域アタック
+  const attack = this.ctx.createOscillator();
+  attack.type = 'triangle';
+  attack.frequency.setValueAtTime(400, t);
+
+  const attackGain = this.ctx.createGain();
+  attackGain.gain.setValueAtTime(0.8, t);
+  attackGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+
+  // 接続
+  fundamental.connect(bellGain);
+  overtone1.connect(bellGain);
+  overtone2.connect(bellGain);
+
+  attack.connect(attackGain);
+  attackGain.connect(bellGain);
+
+  // スタート
+  fundamental.start(t);
+  overtone1.start(t);
+  overtone2.start(t);
+  attack.start(t);
+
+  fundamental.stop(t + 18);
+  overtone1.stop(t + 18);
+  overtone2.stop(t + 18);
+  attack.stop(t + 0.3);
+}
+
 
   setAmbience(type: AmbienceType, active: boolean, vol: number) {
     if (!this.ctx || !this.masterGain) return;
