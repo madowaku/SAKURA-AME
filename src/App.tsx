@@ -453,78 +453,75 @@ const App: React.FC = () => {
   };
 
   const handlePurchase = async () => {
-    if (purchaseStatus === 'processing') return;
+  if (!isBillingReady || purchaseStatus === 'processing') return;
 
-    try {
-      setPurchaseStatus('processing');
+  try {
+    setPurchaseStatus('processing');
 
-      // 念のため再確認
-      const alreadyOwned = await billingService.checkPurchaseHistory();
+    // 念のため再確認
+    const alreadyOwned = await billingService.checkPurchaseHistory();
 
-      if (alreadyOwned) {
-        setIsPremium(true);
-        localStorage.setItem('sakura_ame_premium', 'true');
-        setPurchaseStatus('success');
+    if (alreadyOwned) {
+      setIsPremium(true);
+      localStorage.setItem('sakura_ame_premium', 'true');
 
-        setTimeout(() => {
-          setPurchaseStatus(null);
-          setShowPremiumModal(false);
-        }, 3000);
+      setShowPremiumModal(false); // ← 先に閉じる
+      setPurchaseStatus('success');
 
-        return;
-      }
+      setTimeout(() => {
+        setPurchaseStatus(null);
+      }, 2500);
 
-      // 通常購入
-      const result = await billingService.requestPurchase();
-
-      if (result === 'success' || alreadyOwned) {
-        setIsPremium(true);
-        localStorage.setItem('sakura_ame_premium', 'true');
-        setPurchaseStatus('success');
-        setShowPremiumModal(false);
-
-        setTimeout(() => {
-          setPurchaseStatus(null);
-          setShowPremiumModal(false);
-        }, 3000);
-
-      } else if (result === 'canceled') {
-        setShowPremiumModal(false);
-        setPurchaseStatus('canceled');
-        setTimeout(() => setPurchaseStatus(null), 2000);
-
-      } else {
-        setShowPremiumModal(false);
-        setPurchaseStatus('failed');
-        setTimeout(() => setPurchaseStatus(null), 2000);
-      }
-
-    } catch (error) {
-      console.error("Purchase error:", error);
-
-      // 👇 ここが重要
-      if (error?.code === 'ITEM_ALREADY_OWNED') {
-        setIsPremium(true);
-        localStorage.setItem('sakura_ame_premium', 'true');
-        setPurchaseStatus('success');
-
-        setTimeout(() => {
-          setPurchaseStatus(null);
-          setShowPremiumModal(false);
-        }, 3000);
-
-      } else if (error?.code === 'USER_CANCELED') {
-        setPurchaseStatus('canceled');
-        setShowPremiumModal(false);
-        setTimeout(() => setPurchaseStatus(null), 2000);
-
-      } else {
-        setPurchaseStatus('failed');
-        setShowPremiumModal(false);
-        setTimeout(() => setPurchaseStatus(null), 2000);
-      }
+      return;
     }
-  };
+
+    const result = await billingService.requestPurchase();
+
+    if (result === 'success') {
+      setIsPremium(true);
+      localStorage.setItem('sakura_ame_premium', 'true');
+
+      setShowPremiumModal(false); // ← 先に閉じる
+      setPurchaseStatus('success');
+
+      setTimeout(() => {
+        setPurchaseStatus(null);
+      }, 2500);
+
+    } else if (result === 'canceled') {
+      setPurchaseStatus('canceled');
+      setTimeout(() => setPurchaseStatus(null), 2000);
+
+    } else {
+      setPurchaseStatus('failed');
+      setTimeout(() => setPurchaseStatus(null), 2000);
+    }
+
+  } catch (error) {
+    console.error("Purchase error:", error);
+
+    if (error?.code === 'ITEM_ALREADY_OWNED') {
+      setIsPremium(true);
+      localStorage.setItem('sakura_ame_premium', 'true');
+
+      setShowPremiumModal(false);
+      setPurchaseStatus('success');
+
+      setTimeout(() => {
+        setPurchaseStatus(null);
+      }, 2500);
+
+    } else if (error?.code === 'USER_CANCELED') {
+      setPurchaseStatus('canceled');
+      setTimeout(() => setPurchaseStatus(null), 2000);
+
+    } else {
+      setPurchaseStatus('failed');
+      setTimeout(() => setPurchaseStatus(null), 2000);
+    }
+  }
+};
+
 
 
   // 波紋を生成する関数
@@ -1045,100 +1042,72 @@ const App: React.FC = () => {
       )}
 
       {showPremiumModal && (
-        <div className="absolute inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-stone-900 border border-sakura-500/30 rounded-3xl p-10 max-w-sm w-full shadow-2xl relative overflow-hidden text-center space-y-6">
-            <Flower size={32} className="text-sakura-400 mx-auto animate-pulse" />
-            <h3 className="text-2xl font-serif text-white tracking-widest">静寂を深める</h3>
-            <div className="space-y-1">
-              <p className="text-stone-400 text-sm leading-relaxed">
-                Unlock additional scenes, sounds, and melodies.<br />
-                Deepen your time in the garden.<br />
-                One gentle expansion, forever.
-              </p>
-              <p className="text-stone-300 text-xs font-serif italic tracking-[0.2em] mt-2">静けさを、もう少し。</p>
-            </div>
-            <button
-              onClick={handlePurchase}
-              disabled={!isBillingReady || purchaseStatus === 'processing'}
-              className="w-full py-4 bg-gradient-to-r from-sakura-600 to-sakura-500 rounded-xl text-sakura-50 font-bold uppercase tracking-widest text-xs shadow-xl transition-transform hover:scale-105 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {isBillingReady ? "UNLOCK FULL GARDEN" : "Preparing the garden..."}
-            </button>
-            {/* 👇 ここに復元ボタンを追加 */}
-            <button
-              onClick={async () => {
-                const owned = await billingService.checkPurchaseHistory();
-                if (owned) {
-                  setIsPremium(true);
-                  localStorage.setItem('sakura_ame_premium', 'true');
-                  setPurchaseStatus('success');
-                  setTimeout(() => {
-                    setPurchaseStatus(null);
-                    setShowPremiumModal(false);
-                  }, 3000);
-                } else {
-                  alert("購入履歴が見つかりませんでした。");
-                }
-              }}
-              className="text-stone-400 text-[10px] uppercase tracking-widest mt-4 hover:text-white underline decoration-stone-600 underline-offset-4 transition-all"
-            >
-              Restore Purchase
-            </button>
-            <button onClick={() => setShowPremiumModal(false)} className="text-stone-500 text-xs uppercase tracking-widest mt-2 block mx-auto hover:text-stone-300 transition-colors">STAY HERE FOR NOW</button>
-          </div>
-        </div>
-      )}
+  <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+    <div className="bg-stone-900 border border-sakura-500/30 rounded-3xl p-10 max-w-sm w-full shadow-2xl text-center space-y-6">
 
-      /* 成功時のみ全画面ロック */
-{purchaseStatus === 'success' && (
-  <div
-    onClick={(e) => {
-      e.stopPropagation(); // イベントのバブリング防止
-      setPurchaseStatus(null);
-      setShowPremiumModal(false);
-    }}
-    // 👇 fixed で画面固定、z-[3] で最前面、cursor-pointer で指マークを表示
-    className="fixed inset-0 z-[3] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-700 cursor-pointer pointer-events-auto touch-auto"
-  >
-    {/* 自動で閉じるためのタイマー（安全策として追加推奨） */}
-    <TriggerAutoClose 
-      onClose={() => {
-        setPurchaseStatus(null);
-        setShowPremiumModal(false);
-      }} 
-    />
+      <h3 className="text-2xl font-serif text-white tracking-widest">
+        静寂を深める
+      </h3>
 
-    <div className="text-center space-y-4 pointer-events-none"> {/* テキスト自体はクリック判定を透過させる */}
-      <div className="text-sakura-100 font-serif text-xl tracking-[0.2em] animate-pulse">
-        The garden quietly deepens.
-      </div>
-      <div className="text-sakura-200/60 text-xs font-serif tracking-widest">
-        庭は、静かに深まりました。
-      </div>
-      <div className="text-white/40 text-[10px] uppercase tracking-widest mt-8">
-        Tap to continue
-      </div>
+      <button
+        onClick={handlePurchase}
+        disabled={!isBillingReady || purchaseStatus === 'processing'}
+        className="w-full py-4 bg-gradient-to-r from-sakura-600 to-sakura-500 rounded-xl text-white text-xs uppercase tracking-widest disabled:opacity-40"
+      >
+        {purchaseStatus === 'processing'
+          ? "Processing..."
+          : isBillingReady
+          ? "UNLOCK FULL GARDEN"
+          : "Preparing..."}
+      </button>
+
+      <button
+        onClick={() => setShowPremiumModal(false)}
+        className="text-stone-500 text-xs uppercase tracking-widest"
+      >
+        STAY HERE FOR NOW
+      </button>
+
     </div>
   </div>
 )}
 
-      /* 失敗時はトースト表示（画面ロックしない） */
+
+      {purchaseStatus === 'success' && (
+  <div
+    onClick={() => setPurchaseStatus(null)}
+    className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-xl cursor-pointer"
+  >
+    <div className="text-center space-y-4 pointer-events-none">
+      <p className="text-white text-xl font-light tracking-[0.3em]">
+        The garden quietly deepens.
+      </p>
+      <p className="text-stone-400 text-sm font-serif tracking-[0.4em]">
+        庭は、静かに深まりました。
+      </p>
+      <p className="text-white/40 text-[10px] uppercase tracking-widest mt-6">
+        Tap to continue
+      </p>
+    </div>
+  </div>
+)}
+
       {purchaseStatus === 'failed' && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[210]
-                  bg-black/70 backdrop-blur-xl px-6 py-3 rounded-2xl
-                  text-white text-sm animate-in fade-in duration-500">
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[300]
+          bg-black/70 backdrop-blur-xl px-6 py-3 rounded-2xl
+          text-white text-sm">
           風が、ひとときを乱しました。
         </div>
       )}
 
-      /* キャンセルも同様 */
       {purchaseStatus === 'canceled' && (
-        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[210]
-                  bg-black/70 backdrop-blur-xl px-6 py-3 rounded-2xl
-                  text-white text-sm animate-in fade-in duration-500">
-          庭は、そのままの姿で在ります。
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[300]
+          bg-black/70 backdrop-blur-xl px-6 py-3 rounded-2xl
+          text-white text-sm">
+         庭は、そのままの姿で在ります。
         </div>
       )}
+
 
       {timerRemaining !== null && !isTimerFinished && (
         <div className="absolute top-2 sm:top-12 left-1/2 transform -translate-x-1/2 z-40 flex flex-col items-center gap-2 sm:gap-8 scale-[0.4] sm:scale-100 origin-top transition-transform">
@@ -1195,15 +1164,6 @@ const DrumButton: React.FC<{ note: Note, activeNote: string | null, spawnDrop: (
       </div>
     </button>
   );
-};
-
-// 簡易的な自動クローズ用コンポーネント
-const TriggerAutoClose = ({ onClose }: { onClose: () => void }) => {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 5000); // 5秒後に自動で閉じる
-    return () => clearTimeout(timer);
-  }, [onClose]);
-  return null;
 };
 
 export default App;

@@ -206,9 +206,27 @@ class AudioEngine {
         osc.frequency.exponentialRampToValueAtTime(freq, t + 0.08); // すぐに本来の音程へ
 
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.5, t + 0.05); // 0.02 -> 0.05 (アタックを少し遅くして柔らかく)
+        gain.gain.linearRampToValueAtTime(0.7, t + 0.05); // 0.02 -> 0.05 (アタックを少し遅くして柔らかく)
         gain.gain.exponentialRampToValueAtTime(0.001, t + 5.0); // 4.0 -> 5.0 (洞窟のような長い響き)
+        // 修正2: 「オクターブ上」の音を重ねて、低音の輪郭を作る
+        // これにより、スピーカーで再生しきれない低音も「聴こえる」ようになります
+        const osc2 = this.ctx.createOscillator();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(freq * 2, t); // 周波数を2倍（1オクターブ上）にする
 
+        const gain2 = this.ctx.createGain();
+        gain2.connect(this.masterGain);
+        
+        // 倍音のエンベロープ（メインより少し控えめに）
+        gain2.gain.setValueAtTime(0, t);
+        gain2.gain.linearRampToValueAtTime(0.25, t + 0.02); // 補助的な音量
+        gain2.gain.exponentialRampToValueAtTime(0.001, t + 3.0); // 余韻は少し短く
+
+        osc.connect(gain);
+        osc2.connect(gain2);
+        
+        osc2.start(t);
+        osc2.stop(t + 5.0); // メインと同じタイミングで止める
         osc.connect(gain);
         stopTime = t + 5.0;
         break;
@@ -336,7 +354,7 @@ class AudioEngine {
                 panner.connect(gain);
                 gain.connect(this.masterGain!);
                 
-                let currentBase = vol * 0.35;
+                let currentBase = vol * 0.45;
                 if (type === 'river') currentBase = vol * 0.25;
 
                 gain.gain.setValueAtTime(0, this.ctx!.currentTime);
@@ -352,8 +370,8 @@ class AudioEngine {
                 gainEaves.gain.setTargetAtTime(vol * 0.25 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 1.0);
              } else {
                 const gain = this.ambienceState[type as AmbienceType].nodes![1] as GainNode;
-                let finalVol = vol * 0.35;
-                if (type === 'river') finalVol = vol * 0.22;
+                let finalVol = vol * 0.45;
+                if (type === 'river') finalVol = vol * 0.25;
                 gain.gain.setTargetAtTime(finalVol, this.ctx!.currentTime, 1.0);
              }
           }
