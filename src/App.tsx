@@ -1064,7 +1064,26 @@ const App: React.FC = () => {
             >
               {isBillingReady ? "UNLOCK FULL GARDEN" : "Preparing the garden..."}
             </button>
-
+            {/* 👇 ここに復元ボタンを追加 */}
+            <button
+              onClick={async () => {
+                const owned = await billingService.checkPurchaseHistory();
+                if (owned) {
+                  setIsPremium(true);
+                  localStorage.setItem('sakura_ame_premium', 'true');
+                  setPurchaseStatus('success');
+                  setTimeout(() => {
+                    setPurchaseStatus(null);
+                    setShowPremiumModal(false);
+                  }, 3000);
+                } else {
+                  alert("購入履歴が見つかりませんでした。");
+                }
+              }}
+              className="text-stone-400 text-[10px] uppercase tracking-widest mt-4 hover:text-white underline decoration-stone-600 underline-offset-4 transition-all"
+            >
+              Restore Purchase
+            </button>
             <button onClick={() => setShowPremiumModal(false)} className="text-stone-500 text-xs uppercase tracking-widest mt-2 block mx-auto hover:text-stone-300 transition-colors">STAY HERE FOR NOW</button>
           </div>
         </div>
