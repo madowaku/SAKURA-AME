@@ -155,12 +155,22 @@ class AudioEngine {
         break;
       }
       case 'MusicBox':
-        osc.type = 'sine';
+        osc.type = 'triangle';
+        // オルゴールの「爪」が弾く硬い音を作るためのフィルタ
+        const lowpass = this.ctx.createBiquadFilter();
+        lowpass.type = 'lowpass';
+        lowpass.frequency.value = 3000; // 高周波の不快な部分だけカット
+
+        osc.connect(lowpass);
+        lowpass.connect(gain);
+
+        // エンベロープ（音量変化）: アタックを鋭く、減衰を少し早く
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.4, t + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
+        gain.gain.linearRampToValueAtTime(0.35, t + 0.01); // 0.02 -> 0.01 (鋭く)
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 2.5); // 3.5 -> 2.5 (余韻を短く)
+
         osc.frequency.setValueAtTime(freq, t);
-        osc.connect(gain);
+        stopTime = t + 2.5;
         break;
       case 'Ether':
         osc.type = 'sine';
@@ -188,13 +198,19 @@ class AudioEngine {
         stopTime = t + 1.0;
         break;
       case 'Suikin': {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, t);
+        // ★水琴の特徴付け: 水滴の落ちる「ポチャン」感と長い余韻
+        osc.type = 'sine'; // 純粋な正弦波のまま
+
+        // ピッチエンベロープ: ほんの一瞬だけ高い音から入ることで「水滴感」が出る
+        osc.frequency.setValueAtTime(freq + 20, t); // わずかに高い音から開始
+        osc.frequency.exponentialRampToValueAtTime(freq, t + 0.08); // すぐに本来の音程へ
+
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.4, t + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 4.0);
+        gain.gain.linearRampToValueAtTime(0.5, t + 0.05); // 0.02 -> 0.05 (アタックを少し遅くして柔らかく)
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 5.0); // 4.0 -> 5.0 (洞窟のような長い響き)
+
         osc.connect(gain);
-        stopTime = t + 4.0;
+        stopTime = t + 5.0;
         break;
       }
     }
@@ -320,8 +336,8 @@ class AudioEngine {
                 panner.connect(gain);
                 gain.connect(this.masterGain!);
                 
-                let currentBase = vol * 0.15;
-                if (type === 'river') currentBase = vol * 0.12;
+                let currentBase = vol * 0.35;
+                if (type === 'river') currentBase = vol * 0.25;
 
                 gain.gain.setValueAtTime(0, this.ctx!.currentTime);
                 gain.gain.setTargetAtTime(currentBase, this.ctx!.currentTime, 2.0);
@@ -332,12 +348,12 @@ class AudioEngine {
              if (type === 'rain') {
                 const gainDistant = this.ambienceState['rain'].nodes![1] as GainNode;
                 const gainEaves = this.ambienceState['rain'].nodes![4] as GainNode;
-                gainDistant.gain.setTargetAtTime(vol * 0.25 * this.layerVolumes.distantRain, this.ctx!.currentTime, 1.0);
-                gainEaves.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 1.0);
+                gainDistant.gain.setTargetAtTime(vol * 0.35 * this.layerVolumes.distantRain, this.ctx!.currentTime, 1.0);
+                gainEaves.gain.setTargetAtTime(vol * 0.25 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 1.0);
              } else {
                 const gain = this.ambienceState[type as AmbienceType].nodes![1] as GainNode;
-                let finalVol = vol * 0.15;
-                if (type === 'river') finalVol = vol * 0.12;
+                let finalVol = vol * 0.35;
+                if (type === 'river') finalVol = vol * 0.22;
                 gain.gain.setTargetAtTime(finalVol, this.ctx!.currentTime, 1.0);
              }
           }
