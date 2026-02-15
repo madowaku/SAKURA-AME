@@ -271,7 +271,7 @@ class AudioEngine {
                 filterDistant.frequency.value = 800; 
                 const gainDistant = this.ctx!.createGain();
                 gainDistant.gain.setValueAtTime(0, this.ctx!.currentTime);
-                gainDistant.gain.setTargetAtTime(vol * 0.35 * this.layerVolumes.distantRain, this.ctx!.currentTime, 2.0);
+                gainDistant.gain.setTargetAtTime(vol * 0.25 * this.layerVolumes.distantRain, this.ctx!.currentTime, 2.0);
 
                 const sourceEaves = this.ctx!.createBufferSource();
                 sourceEaves.buffer = this.buffers['rain'];
@@ -279,10 +279,10 @@ class AudioEngine {
                 const filterEaves = this.ctx!.createBiquadFilter();
                 filterEaves.type = 'bandpass';
                 filterEaves.frequency.value = 2500;
-                filterEaves.Q.value = 0.4;
+                filterEaves.Q.value = 0.5;
                 const gainEaves = this.ctx!.createGain();
                 gainEaves.gain.setValueAtTime(0, this.ctx!.currentTime);
-                gainEaves.gain.setTargetAtTime(vol * 0.25 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 2.5);
+                gainEaves.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 2.5);
 
                 sourceDistant.connect(filterDistant);
                 filterDistant.connect(gainDistant);
@@ -332,8 +332,8 @@ class AudioEngine {
              if (type === 'rain') {
                 const gainDistant = this.ambienceState['rain'].nodes![1] as GainNode;
                 const gainEaves = this.ambienceState['rain'].nodes![4] as GainNode;
-                gainDistant.gain.setTargetAtTime(vol * 0.35 * this.layerVolumes.distantRain, this.ctx!.currentTime, 1.0);
-                gainEaves.gain.setTargetAtTime(vol * 0.25 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 1.0);
+                gainDistant.gain.setTargetAtTime(vol * 0.25 * this.layerVolumes.distantRain, this.ctx!.currentTime, 1.0);
+                gainEaves.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 1.0);
              } else {
                 const gain = this.ambienceState[type as AmbienceType].nodes![1] as GainNode;
                 let finalVol = vol * 0.035;

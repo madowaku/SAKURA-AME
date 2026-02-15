@@ -1071,28 +1071,37 @@ const App: React.FC = () => {
       )}
 
       /* 成功時のみ全画面ロック */
-      {purchaseStatus === 'success' && (
-        <div
-          onClick={() => {
-            setPurchaseStatus(null);
-            setShowPremiumModal(false);
-          }}
-          // 👇 修正: pointer-events-none を削除し、代わりに cursor-pointer と pointer-events-auto を追加
-          className="absolute inset-0 z- flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-700 cursor-pointer pointer-events-auto"
+{purchaseStatus === 'success' && (
+  <div
+    onClick={(e) => {
+      e.stopPropagation(); // イベントのバブリング防止
+      setPurchaseStatus(null);
+      setShowPremiumModal(false);
+    }}
+    // 👇 fixed で画面固定、z-[3] で最前面、cursor-pointer で指マークを表示
+    className="fixed inset-0 z-[3] flex items-center justify-center bg-black/80 backdrop-blur-xl animate-in fade-in duration-700 cursor-pointer pointer-events-auto touch-auto"
   >
-          <div className="text-center space-y-4">
-           <div className="text-sakura-100 font-serif text-xl tracking-[0.2em] animate-pulse">
-              The garden quietly deepens.
-           </div>
-           <div className="text-sakura-200/60 text-xs font-serif tracking-widest">
-             庭は、静かに深まりました。
-           </div>
-           <div className="text-white/40 text-[10px] uppercase tracking-widest mt-8">
-              Tap to continue
-            </div>
-         </div>
-        </div>
-      )}
+    {/* 自動で閉じるためのタイマー（安全策として追加推奨） */}
+    <TriggerAutoClose 
+      onClose={() => {
+        setPurchaseStatus(null);
+        setShowPremiumModal(false);
+      }} 
+    />
+
+    <div className="text-center space-y-4 pointer-events-none"> {/* テキスト自体はクリック判定を透過させる */}
+      <div className="text-sakura-100 font-serif text-xl tracking-[0.2em] animate-pulse">
+        The garden quietly deepens.
+      </div>
+      <div className="text-sakura-200/60 text-xs font-serif tracking-widest">
+        庭は、静かに深まりました。
+      </div>
+      <div className="text-white/40 text-[10px] uppercase tracking-widest mt-8">
+        Tap to continue
+      </div>
+    </div>
+  </div>
+)}
 
       /* 失敗時はトースト表示（画面ロックしない） */
       {purchaseStatus === 'failed' && (
@@ -1167,6 +1176,15 @@ const DrumButton: React.FC<{ note: Note, activeNote: string | null, spawnDrop: (
       </div>
     </button>
   );
+};
+
+// 簡易的な自動クローズ用コンポーネント
+const TriggerAutoClose = ({ onClose }: { onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 5000); // 5秒後に自動で閉じる
+    return () => clearTimeout(timer);
+  }, [onClose]);
+  return null;
 };
 
 export default App;
