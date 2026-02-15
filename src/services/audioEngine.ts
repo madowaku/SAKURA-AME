@@ -233,7 +233,7 @@ class AudioEngine {
     const bellGain = this.ctx.createGain();
     bellGain.connect(this.masterGain);
     bellGain.gain.setValueAtTime(0, t);
-    bellGain.gain.linearRampToValueAtTime(0.8, t + 0.01);
+    bellGain.gain.linearRampToValueAtTime(1.5, t + 0.01);
     bellGain.gain.exponentialRampToValueAtTime(0.001, t + 15);
     const osc = this.ctx.createOscillator();
     osc.frequency.setValueAtTime(82.41, t);
@@ -308,11 +308,11 @@ class AudioEngine {
                 if (type === 'wind') {
                   panner.positionX.setValueAtTime(-1, this.ctx!.currentTime);
                   filter.type = 'lowpass';
-                  filter.frequency.value = 500; 
+                  filter.frequency.value = 800;
                 } else if (type === 'river') {
                   panner.positionX.setValueAtTime(0, this.ctx!.currentTime);
                   filter.type = 'lowpass';
-                  filter.frequency.value = 1000;
+                  filter.frequency.value = 2000;
                 }
 
                 source.connect(filter);
@@ -320,8 +320,8 @@ class AudioEngine {
                 panner.connect(gain);
                 gain.connect(this.masterGain!);
                 
-                let currentBase = vol * 0.035; 
-                if (type === 'river') currentBase = vol * 0.025;
+                let currentBase = vol * 0.15;
+                if (type === 'river') currentBase = vol * 0.12;
 
                 gain.gain.setValueAtTime(0, this.ctx!.currentTime);
                 gain.gain.setTargetAtTime(currentBase, this.ctx!.currentTime, 2.0);
@@ -336,8 +336,8 @@ class AudioEngine {
                 gainEaves.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 1.0);
              } else {
                 const gain = this.ambienceState[type as AmbienceType].nodes![1] as GainNode;
-                let finalVol = vol * 0.035;
-                if (type === 'river') finalVol = vol * 0.025;
+                let finalVol = vol * 0.15;
+                if (type === 'river') finalVol = vol * 0.12;
                 gain.gain.setTargetAtTime(finalVol, this.ctx!.currentTime, 1.0);
              }
           }
