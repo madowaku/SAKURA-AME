@@ -447,24 +447,24 @@ const App: React.FC = () => {
 
     const initBilling = async () => {
       try {
-        await billingService.init();
+        const isAvailable = await billingService.init();
+        if (isMounted) setIsBillingReady(isAvailable);
 
-        try {
-          const hasPurchased = await billingService.checkPurchaseHistory();
-          if (isMounted && hasPurchased) {
-            setIsPremium(true);
-            localStorage.setItem('sakura_ame_premium', 'true');
+        if (isAvailable) {
+          try {
+            const hasPurchased = await billingService.checkPurchaseHistory();
+            if (isMounted && hasPurchased) {
+              setIsPremium(true);
+              localStorage.setItem('sakura_ame_premium', 'true');
+            }
+          } catch (historyError) {
+            console.error("History check failed:", historyError);
           }
-        } catch (historyError) {
-          console.error("History check failed:", historyError);
         }
 
       } catch (initError) {
         console.error("Billing init error:", initError);
-      } finally {
-        if (isMounted) {
-          setIsBillingReady(true); // 👈 必ず実行
-        }
+        if (isMounted) setIsBillingReady(false);
       }
     };
 
@@ -640,74 +640,74 @@ const App: React.FC = () => {
   };
 
   const handlePurchase = async () => {
-  if (!isBillingReady || purchaseStatus === 'processing') return;
+    if (!isBillingReady || purchaseStatus === 'processing') return;
 
-  try {
-    setPurchaseStatus('processing');
+    try {
+      setPurchaseStatus('processing');
 
-    // 念のため再確認
-    const alreadyOwned = await billingService.checkPurchaseHistory();
+      // 念のため再確認
+      const alreadyOwned = await billingService.checkPurchaseHistory();
 
-    if (alreadyOwned) {
-      setIsPremium(true);
-      localStorage.setItem('sakura_ame_premium', 'true');
+      if (alreadyOwned) {
+        setIsPremium(true);
+        localStorage.setItem('sakura_ame_premium', 'true');
 
-      setShowPremiumModal(false); // ← 先に閉じる
-      setPurchaseStatus('success');
+        setShowPremiumModal(false); // ← 先に閉じる
+        setPurchaseStatus('success');
 
-      setTimeout(() => {
-        setPurchaseStatus(null);
-      }, 4000);
+        setTimeout(() => {
+          setPurchaseStatus(null);
+        }, 4000);
 
-      return;
+        return;
+      }
+
+      const result = await billingService.requestPurchase();
+
+      if (result === 'success') {
+        setIsPremium(true);
+        localStorage.setItem('sakura_ame_premium', 'true');
+
+        setShowPremiumModal(false); // ← 先に閉じる
+        setPurchaseStatus('success');
+
+        setTimeout(() => {
+          setPurchaseStatus(null);
+        }, 4000);
+
+      } else if (result === 'canceled') {
+        setPurchaseStatus('canceled');
+        setTimeout(() => setPurchaseStatus(null), 2000);
+
+      } else {
+        setPurchaseStatus('failed');
+        setTimeout(() => setPurchaseStatus(null), 2000);
+      }
+
+    } catch (error: any) {
+      console.error("Purchase error:", error);
+
+      if (error?.code === 'ITEM_ALREADY_OWNED') {
+        setIsPremium(true);
+        localStorage.setItem('sakura_ame_premium', 'true');
+
+        setShowPremiumModal(false);
+        setPurchaseStatus('success');
+
+        setTimeout(() => {
+          setPurchaseStatus(null);
+        }, 4000);
+
+      } else if (error?.code === 'USER_CANCELED') {
+        setPurchaseStatus('canceled');
+        setTimeout(() => setPurchaseStatus(null), 2000);
+
+      } else {
+        setPurchaseStatus('failed');
+        setTimeout(() => setPurchaseStatus(null), 2000);
+      }
     }
-
-    const result = await billingService.requestPurchase();
-
-    if (result === 'success') {
-      setIsPremium(true);
-      localStorage.setItem('sakura_ame_premium', 'true');
-
-      setShowPremiumModal(false); // ← 先に閉じる
-      setPurchaseStatus('success');
-
-      setTimeout(() => {
-        setPurchaseStatus(null);
-      }, 4000);
-
-    } else if (result === 'canceled') {
-      setPurchaseStatus('canceled');
-      setTimeout(() => setPurchaseStatus(null), 2000);
-
-    } else {
-      setPurchaseStatus('failed');
-      setTimeout(() => setPurchaseStatus(null), 2000);
-    }
-
-  } catch (error: any) {
-    console.error("Purchase error:", error);
-
-    if (error?.code === 'ITEM_ALREADY_OWNED') {
-      setIsPremium(true);
-      localStorage.setItem('sakura_ame_premium', 'true');
-
-      setShowPremiumModal(false);
-      setPurchaseStatus('success');
-
-      setTimeout(() => {
-        setPurchaseStatus(null);
-      }, 4000);
-
-    } else if (error?.code === 'USER_CANCELED') {
-      setPurchaseStatus('canceled');
-      setTimeout(() => setPurchaseStatus(null), 2000);
-
-    } else {
-      setPurchaseStatus('failed');
-      setTimeout(() => setPurchaseStatus(null), 2000);
-    }
-  }
-};
+  };
 
 
 
@@ -1229,77 +1229,69 @@ const App: React.FC = () => {
       )}
 
       {showPremiumModal && (
-  <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-    <div className="bg-stone-900 border border-sakura-500/30 rounded-3xl p-10 max-w-sm w-full shadow-2xl text-center space-y-6">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-stone-900 border border-sakura-500/30 rounded-3xl p-10 max-w-sm w-full shadow-2xl text-center space-y-6">
 
-      <h3 className="text-2xl font-serif text-white tracking-widest">
-        静寂を深める
-      </h3>
+            <h3 className="text-2xl font-serif text-white tracking-widest">
+              静寂を深める
+            </h3>
+            <p className="text-stone-400 text-[10px] tracking-[0.3em]">
+              One gentle expansion, forever.
+            </p>
+            <button
+              onClick={handlePurchase}
+              disabled={!isBillingReady || purchaseStatus === 'processing'}
+              className="w-full py-4 bg-gradient-to-r from-sakura-600 to-sakura-500 rounded-xl text-white text-xs uppercase tracking-widest disabled:opacity-40"
+            >
+              {purchaseStatus === 'processing'
+                ? "Processing..."
+                : isBillingReady
+                  ? "UNLOCK FULL GARDEN"
+                  : "Preparing..."}
+            </button>
 
-      <button
-        onClick={handlePurchase}
-        disabled={!isBillingReady || purchaseStatus === 'processing'}
-        className="w-full py-4 bg-gradient-to-r from-sakura-600 to-sakura-500 rounded-xl text-white text-xs uppercase tracking-widest disabled:opacity-40"
-      >
-        {purchaseStatus === 'processing'
-          ? "Processing..."
-          : isBillingReady
-          ? "UNLOCK FULL GARDEN"
-          : "Preparing..."}
-      </button>
+            <button
+              onClick={() => setShowPremiumModal(false)}
+              className="text-stone-500 text-xs uppercase tracking-widest"
+            >
+              STAY HERE FOR NOW
+            </button>
 
-      <button
-        onClick={() => setShowPremiumModal(false)}
-        className="text-stone-500 text-xs uppercase tracking-widest"
-      >
-        STAY HERE FOR NOW
-      </button>
-
-    </div>
-  </div>
-)}
+          </div>
+        </div>
+      )}
 
 
       {purchaseStatus === 'success' && (
-  <div
-    onClick={() => setPurchaseStatus(null)}
-    className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-xl cursor-pointer"
-  >
-    <div className="text-center space-y-4 pointer-events-none">
-      <p className="text-white text-xl font-light tracking-[0.3em]">
-        The garden quietly deepens.
-      </p>
-      <p className="text-stone-400 text-sm font-serif tracking-[0.4em]">
-        庭は、静かに深まりました。
-      </p>
-      <p className="text-white/40 text-[10px] uppercase tracking-widest mt-6">
-        Tap to continue
-      </p>
-    </div>
-  </div>
-)}
+        <div
+          onClick={() => setPurchaseStatus(null)}
+          className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-xl"
+        >
+          <div className="text-center space-y-4 pointer-events-none">
+            <p className="text-white text-xl tracking-[0.3em]">
+              The garden quietly deepens.
+            </p>
+            <p className="text-stone-400 text-sm tracking-[0.4em]">
+              庭は、静かに深まりました。
+            </p>
+          </div>
+        </div>
+      )}
 
-      {/* 修正: 失敗時にもスタイルを適用 */}
+
       {purchaseStatus === 'failed' && (
-  <div 
-    className="fixed inset-0 z- flex items-center justify-center bg-black/80 backdrop-blur-xl"
-  >
-    <div className="text-sakura-200 font-serif tracking-widest">
-      風が、ひとときを乱しました。
-    </div>
-  </div>
-)}
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[300]
+    bg-black/70 px-6 py-3 rounded-2xl text-white text-sm">
+          風が、ひとときを乱しました。
+        </div>
+      )}
 
-{/* 修正: キャンセル時にもスタイルを適用 */}
       {purchaseStatus === 'canceled' && (
-  <div 
-    className="fixed inset-0 z- flex items-center justify-center bg-black/80 backdrop-blur-xl"
-  >
-    <div className="text-stone-400 font-serif tracking-widest">
-      庭は、そのままの姿で在ります。
-    </div>
-  </div>
-)}
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[300]
+    bg-black/70 px-6 py-3 rounded-2xl text-white text-sm">
+          庭は、そのままの姿で在ります。
+        </div>
+      )}
 
 
       {timerRemaining !== null && !isTimerFinished && (

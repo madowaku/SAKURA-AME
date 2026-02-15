@@ -268,7 +268,7 @@ class AudioEngine {
     const bellGain = this.ctx.createGain();
     bellGain.connect(this.masterGain);
     bellGain.gain.setValueAtTime(0, t);
-    bellGain.gain.linearRampToValueAtTime(4.5, t + 0.01);
+    bellGain.gain.linearRampToValueAtTime(Vol * 1.8, t + 0.01);
     bellGain.gain.exponentialRampToValueAtTime(0.001, t + 15);
     const osc = this.ctx.createOscillator();
     osc.frequency.setValueAtTime(82.41, t);
