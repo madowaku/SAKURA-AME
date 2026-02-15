@@ -1076,41 +1076,31 @@ const App: React.FC = () => {
       {purchaseStatus === 'success' && (
   <div
     onClick={() => setPurchaseStatus(null)}
-    className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-xl cursor-pointer"
+    className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-xl"
   >
     <div className="text-center space-y-4 pointer-events-none">
-      <p className="text-white text-xl font-light tracking-[0.3em]">
+      <p className="text-white text-xl tracking-[0.3em]">
         The garden quietly deepens.
       </p>
-      <p className="text-stone-400 text-sm font-serif tracking-[0.4em]">
+      <p className="text-stone-400 text-sm tracking-[0.4em]">
         庭は、静かに深まりました。
       </p>
-      <p className="text-white/40 text-[10px] uppercase tracking-widest mt-6">
-        Tap to continue
-      </p>
     </div>
   </div>
 )}
 
-      {/* 修正: 失敗時にもスタイルを適用 */}
+
       {purchaseStatus === 'failed' && (
-  <div 
-    className="fixed inset-0 z- flex items-center justify-center bg-black/80 backdrop-blur-xl"
-  >
-    <div className="text-sakura-200 font-serif tracking-widest">
-      風が、ひとときを乱しました。
-    </div>
+  <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[300]
+    bg-black/70 px-6 py-3 rounded-2xl text-white text-sm">
+    風が、ひとときを乱しました。
   </div>
 )}
 
-{/* 修正: キャンセル時にもスタイルを適用 */}
-      {purchaseStatus === 'canceled' && (
-  <div 
-    className="fixed inset-0 z- flex items-center justify-center bg-black/80 backdrop-blur-xl"
-  >
-    <div className="text-stone-400 font-serif tracking-widest">
-      庭は、そのままの姿で在ります。
-    </div>
+{purchaseStatus === 'canceled' && (
+  <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-[300]
+    bg-black/70 px-6 py-3 rounded-2xl text-white text-sm">
+    庭は、そのままの姿で在ります。
   </div>
 )}
 
