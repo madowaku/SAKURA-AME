@@ -154,49 +154,69 @@ class AudioEngine {
         stopTime = t + 3.0;
         break;
       }
-      case 'MusicBox':
+      case 'MusicBox': {
+       osc.type = 'sine';
+
+       const osc2 = this.ctx.createOscillator();
+        osc2.type = 'sine';
+       osc2.frequency.setValueAtTime(freq * 2.0, t);
+
+        const highpass = this.ctx.createBiquadFilter();
+       highpass.type = 'highpass';
+       highpass.frequency.value = 500;
+
+       osc.connect(highpass);
+       osc2.connect(highpass);
+       highpass.connect(gain);
+
+       gain.gain.setValueAtTime(0, t);
+       gain.gain.linearRampToValueAtTime(0.4, t + 0.01);
+       gain.gain.exponentialRampToValueAtTime(0.001, t + 2.8);
+
+        osc.frequency.setValueAtTime(freq, t);
+
+        osc2.start(t);
+        osc2.stop(t + 2.5);
+
+        stopTime = t + 2.8;
+        break;
+      }
+      case 'Bamboo': {
         osc.type = 'triangle';
-        // オルゴールの「爪」が弾く硬い音を作るためのフィルタ
+
+        // 少しだけノイズを加える（木の乾いた感じ）
+        const noise = this.ctx.createBufferSource();
+        const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.1, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) {
+          data[i] = (Math.random() * 2 - 1) * 0.2;
+        }
+        noise.buffer = buffer;
+
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.value = 0.15;
+
         const lowpass = this.ctx.createBiquadFilter();
         lowpass.type = 'lowpass';
-        lowpass.frequency.value = 3000; // 高周波の不快な部分だけカット
+        lowpass.frequency.value = 1200; // 木っぽく丸める
 
         osc.connect(lowpass);
+        noise.connect(noiseGain);
+        noiseGain.connect(lowpass);
         lowpass.connect(gain);
 
-        // エンベロープ（音量変化）: アタックを鋭く、減衰を少し早く
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.35, t + 0.01); // 0.02 -> 0.01 (鋭く)
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 2.5); // 3.5 -> 2.5 (余韻を短く)
+        gain.gain.linearRampToValueAtTime(0.35, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
 
         osc.frequency.setValueAtTime(freq, t);
-        stopTime = t + 2.5;
+
+        noise.start(t);
+        noise.stop(t + 0.1);
+
+        stopTime = t + 0.7;
         break;
-      case 'Ether':
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.3, t + 0.8);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 5.0);
-        osc.frequency.setValueAtTime(freq, t);
-        osc.connect(gain);
-        break;
-      case 'Deep':
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.4, t + 0.1);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 6.0);
-        osc.frequency.setValueAtTime(freq, t);
-        osc.connect(gain);
-        break;
-      case 'Bamboo':
-        osc.type = 'triangle';
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.3, t + 0.03);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
-        osc.frequency.setValueAtTime(freq, t);
-        osc.connect(gain);
-        stopTime = t + 1.0;
-        break;
+      }
       case 'Suikin': {
         // ★水琴の特徴付け: 水滴の落ちる「ポチャン」感と長い余韻
         osc.type = 'sine'; // 純粋な正弦波のまま
@@ -248,7 +268,7 @@ class AudioEngine {
     const bellGain = this.ctx.createGain();
     bellGain.connect(this.masterGain);
     bellGain.gain.setValueAtTime(0, t);
-    bellGain.gain.linearRampToValueAtTime(2.5, t + 0.01);
+    bellGain.gain.linearRampToValueAtTime(4.5, t + 0.01);
     bellGain.gain.exponentialRampToValueAtTime(0.001, t + 15);
     const osc = this.ctx.createOscillator();
     osc.frequency.setValueAtTime(82.41, t);

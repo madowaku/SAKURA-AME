@@ -1048,7 +1048,9 @@ const App: React.FC = () => {
       <h3 className="text-2xl font-serif text-white tracking-widest">
         静寂を深める
       </h3>
-
+      <p className="text-stone-400 text-[10px] tracking-[0.3em]">
+        One gentle expansion, forever.
+      </p>
       <button
         onClick={handlePurchase}
         disabled={!isBillingReady || purchaseStatus === 'processing'}
