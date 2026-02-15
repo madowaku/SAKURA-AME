@@ -8,15 +8,18 @@ class BillingService {
     private readonly ITEM_ID = 'sakuraame_premium_unlock';
     private readonly PURCHASE_OPTION_ID = 'sakuraame-premium-unlock';
 
-    async init() {
+    async init(): Promise<boolean> {
         if ('getDigitalGoodsService' in window) {
             try {
                 // @ts-ignore
                 this.service = await window.getDigitalGoodsService('https://play.google.com/billing');
+                return true;
             } catch (e) {
                 console.warn('Digital Goods API is not supported or failed to initialize', e);
+                return false;
             }
         }
+        return !!window.PaymentRequest;
     }
 
     async checkPurchaseHistory(): Promise<boolean> {
@@ -35,7 +38,7 @@ class BillingService {
             console.error('Payment Request API is not supported');
             return 'failed';
         }
-     // 👇 ここを追加（超重要）
+        // 👇 ここを追加（超重要）
         if (this.service) {
             const existing = await this.service.listPurchases();
             const alreadyOwned = existing.some((p: any) => p.itemId === this.ITEM_ID);
@@ -43,7 +46,7 @@ class BillingService {
                 return 'success';
             }
         }
-    
+
         const paymentMethods = [{
             supportedMethods: 'https://play.google.com/billing',
             data: {
@@ -84,7 +87,7 @@ class BillingService {
             return 'success';
 
         } catch (e: any) {
-                // 👇 所有済みでもここに来ることがある
+            // 👇 所有済みでもここに来ることがある
             if (this.service) {
                 const existing = await this.service.listPurchases();
                 const alreadyOwned = existing.some((p: any) => p.itemId === this.ITEM_ID);
@@ -92,7 +95,7 @@ class BillingService {
                     return 'success';
                 }
             }
-            
+
             if (e.name === 'AbortError') {
                 return 'canceled';
             }
