@@ -271,7 +271,7 @@ class AudioEngine {
   bellGain.connect(this.masterGain);
 
   bellGain.gain.setValueAtTime(0, t);
-  bellGain.gain.linearRampToValueAtTime(1.2, t + 0.02);
+  bellGain.gain.linearRampToValueAtTime(1.8, t + 0.02);
   bellGain.gain.exponentialRampToValueAtTime(0.001, t + 18);
 
   // 基音（低い）
@@ -348,7 +348,7 @@ class AudioEngine {
                 filterDistant.frequency.value = 800; 
                 const gainDistant = this.ctx!.createGain();
                 gainDistant.gain.setValueAtTime(0, this.ctx!.currentTime);
-                gainDistant.gain.setTargetAtTime(vol * 0.25 * this.layerVolumes.distantRain, this.ctx!.currentTime, 2.0);
+                gainDistant.gain.setTargetAtTime(vol * 0.2 * this.layerVolumes.distantRain, this.ctx!.currentTime, 2.0);
 
                 const sourceEaves = this.ctx!.createBufferSource();
                 sourceEaves.buffer = this.buffers['rain'];
@@ -359,7 +359,7 @@ class AudioEngine {
                 filterEaves.Q.value = 0.5;
                 const gainEaves = this.ctx!.createGain();
                 gainEaves.gain.setValueAtTime(0, this.ctx!.currentTime);
-                gainEaves.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 2.5);
+                gainEaves.gain.setTargetAtTime(vol * 0.1 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 2.5);
 
                 sourceDistant.connect(filterDistant);
                 filterDistant.connect(gainDistant);
