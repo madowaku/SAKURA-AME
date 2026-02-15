@@ -272,7 +272,7 @@ class AudioEngine {
   bellGain.connect(this.masterGain);
 
   bellGain.gain.setValueAtTime(0, t);
-  bellGain.gain.linearRampToValueAtTime(0.9, t + 0.02);
+  bellGain.gain.linearRampToValueAtTime(2.5, t + 0.05);
   bellGain.gain.exponentialRampToValueAtTime(0.001, t + 16);
 
   // 基音
@@ -291,8 +291,8 @@ class AudioEngine {
   shimmer.frequency.setValueAtTime(2000, t);
 
   const shimmerGain = this.ctx.createGain();
-  shimmerGain.gain.setValueAtTime(0.18, t);
-  shimmerGain.gain.exponentialRampToValueAtTime(0.001, t + 2.5);
+  shimmerGain.gain.setValueAtTime(0.28, t);
+  shimmerGain.gain.exponentialRampToValueAtTime(0.001, t + 3.0);
 
   fundamental.connect(bellGain);
   overtone.connect(bellGain);
@@ -305,7 +305,7 @@ class AudioEngine {
 
   fundamental.stop(t + 16);
   overtone.stop(t + 16);
-  shimmer.stop(t + 2.5);
+  shimmer.stop(t + 3.0);
 }
 
 
