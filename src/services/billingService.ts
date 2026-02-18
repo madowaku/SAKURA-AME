@@ -38,7 +38,11 @@ class BillingService {
             console.error('Payment Request API is not supported');
             return 'failed';
         }
-        // 👇 ここを追加（超重要）
+
+    // Payment UI の状態を追跡するための変数
+    let response: any = null;
+
+    // すでに所有しているか事前チェック（所有済みならここで即終了）
         if (this.service) {
             const existing = await this.service.listPurchases();
             const alreadyOwned = existing.some((p: any) => p.itemId === this.ITEM_ID);
@@ -63,31 +67,54 @@ class BillingService {
 
         try {
             const request = new PaymentRequest(paymentMethods, details);
-            const response = await request.show();
+      response = await request.show();
 
-            // 購入処理の完了を待機し、Digital Goods API で確認・承認（acknowledge）を行う
-            // TWAでは推奨されるフロー
+      // ─────────────────────────────────────
+      // 1. Digital Goods API での確認・承認
+      // ─────────────────────────────────────
             if (this.service) {
-                // 購入情報の詳細を取得して承認
-                const purchases = await this.service.listPurchases();
-                const latestPurchase = purchases.find((p: any) => p.itemId === this.ITEM_ID);
+        try {
+          // 購入情報の詳細を取得して承認
+          const purchases = await this.service.listPurchases();
+          const latestPurchase = purchases.find((p: any) => p.itemId === this.ITEM_ID);
 
-                if (latestPurchase) {
-                    // 購入済みであれば承認する（消費型アイテムでない場合は一度だけでOK）
-                    // @ts-ignore
-                    await this.service.acknowledge(latestPurchase.purchaseToken, 'onetime');
-                    await response.complete('success');
-                    return 'success';
-                }
+          if (latestPurchase) {
+            // 購入済みであれば承認する（消費型アイテムでない場合は一度だけでOK）
+            // @ts-ignore
+            await this.service.acknowledge(latestPurchase.purchaseToken, 'onetime');
+          }
+        } catch (dgError) {
+          console.warn('Digital Goods post-processing failed', dgError);
+          // ここで例外を投げ直さず、UI は閉じて「ひとまず成功」とみなす
+        }
             }
 
-            // Digital Goods Serviceがない場合や最新の購入が見つからない場合でも、
-            // PaymentResponseが成功していれば一旦成功とみなす（デバッグ用）
-            await response.complete('success');
+      // ─────────────────────────────────────
+      // 2. Payment UI を確実に閉じる
+      // ─────────────────────────────────────
+      if (response && typeof response.complete === 'function') {
+        try {
+          await response.complete('success');
+        } catch (completeError) {
+          console.warn('Payment response complete failed', completeError);
+        }
+      }
+
             return 'success';
 
         } catch (e: any) {
-            // 👇 所有済みでもここに来ることがある
+      // ここに来るのはユーザーキャンセルや通信エラーなど
+
+      // すでに Payment UI が開いていて、まだ complete していない場合は閉じる
+      if (response && typeof response.complete === 'function') {
+        try {
+          await response.complete('fail');
+        } catch {
+          // ここでのエラーは無視（すでに閉じているなど）
+        }
+      }
+
+      // 👇 所有済みでも例外経路に来ることがあるので、改めて確認
             if (this.service) {
                 const existing = await this.service.listPurchases();
                 const alreadyOwned = existing.some((p: any) => p.itemId === this.ITEM_ID);
