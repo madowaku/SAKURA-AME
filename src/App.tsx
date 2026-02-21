@@ -265,8 +265,8 @@ const App: React.FC = () => {
       if (reg) {
         await reg.showNotification('桜雨', {
           body: '雨が静かに降っています',
-          icon: 'icon-192.png',
-          badge: 'icon-192.png',
+          icon: 'notification-icon.png',
+          badge: 'notification-icon.png',
           tag: 'sakura-ame-bg',
           renotify: false,
           silent: true,
@@ -278,7 +278,7 @@ const App: React.FC = () => {
         // SW が無い場合はフォールバック（アクションボタンなし）
         const n = new Notification('桜雨', {
           body: '雨が静かに降っています',
-          icon: 'icon-192.png',
+          icon: 'notification-icon.png',
           tag: 'sakura-ame-bg',
           silent: true,
         });
