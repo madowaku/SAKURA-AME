@@ -13,8 +13,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png','bg-start.webp','bg-night.webp','bg-capital.webp','bg-tsumugi.webp' ,'bg-start@2x.webp','bg-night@2x.webp','bg-capital@2x.webp','bg-tsumugi@2x.webp'],
+      includeAssets: ['favicon.ico', 'icon-192.png', 'icon-512.png', 'bg-start.webp', 'bg-night.webp', 'bg-capital.webp', 'bg-tsumugi.webp', 'bg-start@2x.webp', 'bg-night@2x.webp', 'bg-capital@2x.webp', 'bg-tsumugi@2x.webp'],
       manifest: {
         name: '桜雨 - SakuraAme',
         short_name: '桜雨',
@@ -38,30 +41,10 @@ export default defineConfig({
           }
         ]
       },
-      workbox: {
-  // 1. 静的アセット（JS, CSS, ローカル画像）のキャッシュ
-  maximumFileSizeToCacheInBytes: 3000000,
-  globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
-  
-  // 2. 外部キャッシュ設定（Unsplash用）はもう不要なので削除
-  // 代わりに、もし Google Fonts などを使っているならそれだけ残します
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-      handler: 'CacheFirst',
-      options: {
-        cacheName: 'google-fonts-cache',
-        expiration: {
-          maxEntries: 10,
-          maxAgeSeconds: 60 * 60 * 24 * 365 // 1年
-        },
-        cacheableResponse: {
-          statuses: [0, 200]
-        }
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 3000000,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
       }
-    }
-  ]
-}
     })
   ],
   resolve: {

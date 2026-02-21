@@ -22,7 +22,8 @@ import {
   CloudLightning,
   Droplets,
   RotateCcw,
-  Ban
+  Ban,
+  Settings
 } from 'lucide-react';
 import {
   Note,
@@ -155,7 +156,12 @@ const App: React.FC = () => {
   const [showTimer, setShowTimer] = useState(false);
   const [showInstruments, setShowInstruments] = useState(false);
   const [showEisho, setShowEisho] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [backgroundPlayback, setBackgroundPlayback] = useState<boolean>(() => {
+    const saved = localStorage.getItem('sakura_ame_backgroundPlayback');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [purchaseStatus, setPurchaseStatus] = useState<'success' | 'canceled' | 'failed' | null>(null);
   const [isBillingReady, setIsBillingReady] = useState(false);
 
@@ -226,6 +232,7 @@ const App: React.FC = () => {
   });
 
   const requestRef = useRef<number>(null);
+  const activeNotificationRef = useRef<Notification | null>(null);
 
   useEffect(() => {
     const localPremium = localStorage.getItem('sakura_ame_premium');
@@ -243,16 +250,92 @@ const App: React.FC = () => {
     localStorage.setItem('sakura_ame_soundType', currentSoundType);
     localStorage.setItem('sakura_ame_themeId', currentTheme.id);
     localStorage.setItem('sakura_ame_ambience', JSON.stringify(ambience));
-  }, [masterVolume, distantRainVol, eavesRainVol, landscapeVol, rainDensity, currentSoundType, currentTheme, ambience]);
+    localStorage.setItem('sakura_ame_backgroundPlayback', String(backgroundPlayback));
+  }, [masterVolume, distantRainVol, eavesRainVol, landscapeVol, rainDensity, currentSoundType, currentTheme, ambience, backgroundPlayback]);
 
+  // バックグラウンド通知を表示する関数
+  const showBackgroundNotification = useCallback(async () => {
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return;
+    }
+    try {
+      const reg = await navigator.serviceWorker?.ready;
+      if (reg) {
+        await reg.showNotification('桜雨', {
+          body: '雨が静かに降っています',
+          icon: 'icon-192.png',
+          badge: 'icon-192.png',
+          tag: 'sakura-ame-bg',
+          renotify: false,
+          silent: true,
+          actions: [
+            { action: 'stop', title: '雨を止める' }
+          ],
+        } as NotificationOptions);
+      } else {
+        // SW が無い場合はフォールバック（アクションボタンなし）
+        const n = new Notification('桜雨', {
+          body: '雨が静かに降っています',
+          icon: 'icon-192.png',
+          tag: 'sakura-ame-bg',
+          silent: true,
+        });
+        activeNotificationRef.current = n;
+      }
+    } catch {
+      // 通知表示に失敗した場合は静かに無視
+    }
+  }, []);
+
+  // visibilitychange: バックグラウンド時のミュート & 通知
   useEffect(() => {
     const handleVisibility = () => {
       if (!document.hidden) {
+        // フォアグラウンド復帰
         setDrops([]);
+        if (!isMuted) {
+          audioEngine.setMasterVolume(masterVolume);
+        }
+        // 通知を閉じる
+        if (activeNotificationRef.current) {
+          activeNotificationRef.current.close();
+          activeNotificationRef.current = null;
+        }
+        // SW 経由の通知もクリア
+        navigator.serviceWorker?.ready.then((reg) => {
+          reg.getNotifications({ tag: 'sakura-ame-bg' }).then((notifications) => {
+            notifications.forEach((n) => n.close());
+          });
+        }).catch(() => { });
+      } else {
+        // バックグラウンドへ
+        if (!backgroundPlayback) {
+          // OFF → ミュート
+          audioEngine.setMasterVolume(0);
+        } else {
+          // ON → 通知を出す
+          showBackgroundNotification();
+        }
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [backgroundPlayback, isMuted, masterVolume, showBackgroundNotification]);
+
+  // Service Worker からの STOP_RAIN メッセージをリッスン
+  useEffect(() => {
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'STOP_RAIN') {
+        setIsMuted(true);
+        audioEngine.setMasterVolume(0);
+      }
+    };
+    navigator.serviceWorker?.addEventListener('message', handleSWMessage);
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
+    };
   }, []);
 
   useEffect(() => {
@@ -692,6 +775,7 @@ const App: React.FC = () => {
     setShowTimer(false);
     setShowInstruments(false);
     setShowEisho(false);
+    setShowSettings(false);
     setShowPremiumModal(false);
   };
 
@@ -878,7 +962,7 @@ const App: React.FC = () => {
         <button onClick={() => { closePopups(); setShowInstruments(!showInstruments); }} className={`p-5 rounded-full border transition-all backdrop-blur-3xl shadow-2xl ${showInstruments ? 'bg-sakura-900/50 border-sakura-500/50 text-sakura-200' : 'bg-black/5 border-white/10 text-white hover:bg-black/15'}`}><Music size={24} /></button>
       </div>
 
-      <div className="absolute bottom-12 right-8 z-40 flex flex-col items-end gap-5">
+      <div className="absolute bottom-20 right-8 z-40 flex flex-col items-end gap-3">
         {showEisho && (
           <div className="mb-2 bg-stone-950/20 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 w-56 animate-in slide-in-from-right-4 shadow-[0_15px_35px_rgba(0,0,0,0.5)]">
             <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
@@ -894,7 +978,50 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+        {showSettings && (
+          <div className="mb-2 bg-stone-950/20 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 w-56 animate-in slide-in-from-right-4 shadow-[0_15px_35px_rgba(0,0,0,0.5)]">
+            <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+              <h3 className="text-white font-serif text-[10px] tracking-[0.3em] uppercase font-bold">設定</h3>
+              <button onClick={closePopups} className="text-white/50 hover:text-white transition-colors"><X size={16} /></button>
+            </div>
+            <div className="space-y-4">
+              <label className="flex items-center justify-between gap-3 cursor-pointer">
+                <span className="text-[10px] uppercase tracking-widest text-stone-300">バックグラウンド再生</span>
+                <button
+                  onClick={() => {
+                    const next = !backgroundPlayback;
+                    setBackgroundPlayback(next);
+                    // ONにしたら通知権限をリクエスト
+                    if (next && 'Notification' in window && Notification.permission === 'default') {
+                      Notification.requestPermission();
+                    }
+                  }}
+                  className={`relative w-12 h-6 rounded-full border transition-all ${backgroundPlayback ? 'bg-sakura-500/50 border-sakura-400' : 'bg-black/40 border-white/10'}`}
+                >
+                  <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${backgroundPlayback ? 'left-7' : 'left-1'}`} />
+                </button>
+              </label>
+              <a
+                href="https://madobeno.github.io/privacy.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-4 py-3 rounded-xl text-[10px] tracking-widest uppercase text-white/70 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/10"
+              >
+                プライバシーポリシー
+              </a>
+              <a
+                href="https://madobeno.github.io/madowaku.github.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-4 py-3 rounded-xl text-[10px] tracking-widest uppercase text-white/70 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/10"
+              >
+                madowaku
+              </a>
+            </div>
+          </div>
+        )}
         <button onClick={() => { if (isAutoPlaying) setIsAutoPlaying(false); else { closePopups(); setShowEisho(!showEisho); } }} className={`p-5 rounded-full border transition-all backdrop-blur-3xl shadow-2xl ${isAutoPlaying ? 'bg-sakura-500/30 border-sakura-400 text-sakura-100 shadow-[0_0_20px_rgba(236,72,153,0.3)] animate-pulse' : 'bg-black/5 border-white/10 text-white hover:bg-black/15'}`}>{isAutoPlaying ? <Pause size={24} /> : <Play size={24} />}</button>
+        <button onClick={() => { closePopups(); setShowSettings(!showSettings); }} className={`p-5 rounded-full border transition-all backdrop-blur-3xl shadow-2xl ${showSettings ? 'bg-sakura-900/50 border-sakura-500/50 text-sakura-200' : 'bg-black/5 border-white/10 text-white hover:bg-black/15'}`}><Settings size={24} /></button>
       </div>
 
       {showMixer && (
