@@ -60,7 +60,7 @@ const SakuraTree: React.FC<Props> = ({ streak, justReset }) => {
     const petalsToRender = petalPositions.slice(0, justReset ? 75 : visibleCount);
 
     return (
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-0 w-64 h-64 pointer-events-none opacity-40 mix-blend-screen transition-opacity duration-1000">
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 w-64 h-64 pointer-events-none opacity-70 transition-opacity duration-1000">
             <svg viewBox="0 0 200 200" className="w-full h-full">
                 {renderBranches()}
 

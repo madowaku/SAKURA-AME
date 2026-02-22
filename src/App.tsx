@@ -1069,8 +1069,6 @@ const App: React.FC = () => {
           />
 
           <div className="absolute inset-0 z-10 bg-black/20" />
-
-          <SakuraTree streak={loginStreak} justReset={justResetStreak} />
         </div>
 
         {/* UIレイヤー */}
@@ -1135,6 +1133,9 @@ const App: React.FC = () => {
         theme={currentTheme}
         activeEffect={activeEffect}
       />
+
+      <SakuraTree streak={loginStreak} justReset={justResetStreak} />
+
 
       {isTimerFinished && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-lg animate-in fade-in duration-1000">
