@@ -75,9 +75,9 @@ export const THEMES: Theme[] = [
     bgGradient: 'from-stone-950 via-orange-950/20 to-stone-900',
     bgImage: 'bg-capital.webp',
     bgImage2x: 'bg-capital@2x.webp', // 👈 これを追加！
-    drumColor: 'rgba(66, 32, 6, 0.25)', 
+    drumColor: 'rgba(66, 32, 6, 0.25)',
     rainColor: 'rgba(254, 202, 202, 0.65)',
-    accentColor: '#fb923c', 
+    accentColor: '#fb923c',
     particleColor: '#fdba74',
     overlayColor: 'rgba(0, 0, 0, 0.2)',
     isPremium: true
@@ -105,5 +105,5 @@ export const SHISHIODOSHI_PRESETS: TimerPreset[] = [
   { label: 'うたた寝 (Nap)', minutes: 60, icon: '💤', isPremium: true },
 ];
 
-export const GRAVITY_SPEED = 12; 
-export const PAD_Y_PERCENT = 52;
+export const GRAVITY_SPEED = 12;
+export const PAD_Y_PERCENT = 58;

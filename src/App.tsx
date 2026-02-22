@@ -234,6 +234,13 @@ const App: React.FC = () => {
   const requestRef = useRef<number>(null);
   const activeNotificationRef = useRef<Notification | null>(null);
 
+  // スワイプ追跡用 refs
+  const isDraggingRef = useRef(false);
+  const lastSwipedNoteRef = useRef<string | null>(null);
+  const swipeCooldownRef = useRef<Record<string, number>>({});
+  const leftDrumRef = useRef<HTMLDivElement>(null);
+  const rightDrumRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const localPremium = localStorage.getItem('sakura_ame_premium');
     if (localPremium === 'true') {
@@ -254,17 +261,23 @@ const App: React.FC = () => {
   }, [masterVolume, distantRainVol, eavesRainVol, landscapeVol, rainDensity, currentSoundType, currentTheme, ambience, backgroundPlayback]);
 
   // バックグラウンド通知を表示する関数
-  const showBackgroundNotification = useCallback(async () => {
+  const showBackgroundNotification = useCallback(async (remaining?: number | null) => {
     if (!('Notification' in window)) return;
     if (Notification.permission !== 'granted') {
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') return;
     }
+
+    const isTimerActive = remaining !== undefined && remaining !== null && remaining > 0;
+    const bodyText = isTimerActive
+      ? `タイマー残り時間: ${Math.floor(remaining / 60)}分${remaining % 60}秒`
+      : '雨が静かに降っています';
+
     try {
       const reg = await navigator.serviceWorker?.ready;
       if (reg) {
-        await reg.showNotification('桜雨', {
-          body: '雨が静かに降っています',
+        await reg.showNotification(isTimerActive ? '桜雨 (タイマー作動中)' : '桜雨', {
+          body: bodyText,
           icon: 'notification-icon.png',
           badge: 'notification-icon.png',
           tag: 'sakura-ame-bg',
@@ -276,8 +289,8 @@ const App: React.FC = () => {
         } as NotificationOptions);
       } else {
         // SW が無い場合はフォールバック（アクションボタンなし）
-        const n = new Notification('桜雨', {
-          body: '雨が静かに降っています',
+        const n = new Notification(isTimerActive ? '桜雨 (タイマー作動中)' : '桜雨', {
+          body: bodyText,
           icon: 'notification-icon.png',
           tag: 'sakura-ame-bg',
           silent: true,
@@ -316,13 +329,13 @@ const App: React.FC = () => {
           audioEngine.setMasterVolume(0);
         } else {
           // ON → 通知を出す
-          showBackgroundNotification();
+          showBackgroundNotification(timerRemaining);
         }
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [backgroundPlayback, isMuted, masterVolume, showBackgroundNotification]);
+  }, [backgroundPlayback, isMuted, masterVolume, showBackgroundNotification, timerRemaining]);
 
   // Service Worker からの STOP_RAIN メッセージをリッスン
   useEffect(() => {
@@ -646,9 +659,9 @@ const App: React.FC = () => {
     } // 👈 if文の終わり
 
     triggerVisualRipple(x, y, currentTheme.accentColor, 10); // 👈 ここを安全にコメントアウト
-  }, [isMuted, currentTheme, activeEffect]); // 👈 464行目：ここが正しく閉じていればビルドが通ります
+  }, [isMuted, currentTheme, activeEffect]);
 
-  const spawnDrop = (noteId: string) => {
+  const spawnDrop = useCallback((noteId: string) => {
     if (isTimerFinished || document.hidden) return;
     setActiveNote(noteId);
     setTimeout(() => setActiveNote(null), 300);
@@ -669,7 +682,79 @@ const App: React.FC = () => {
       hasHit: false,
       opacity: 0.6 + Math.random() * 0.4
     }]);
-  };
+  }, [isTimerFinished, dimensions, activeEffect]);
+
+  // スワイプ: 座標から最寄りの花弁ノートを探す
+  const findNoteAtPoint = useCallback((clientX: number, clientY: number): string | null => {
+    const drumRefs = [leftDrumRef, rightDrumRef];
+    const drumIndices = [0, 1];
+    const HIT_RADIUS = 40; // px — 花弁の当たり判定半径
+
+    for (let d = 0; d < drumRefs.length; d++) {
+      const drumEl = drumRefs[d].current;
+      if (!drumEl) continue;
+      const rect = drumEl.getBoundingClientRect();
+      const drumNotes = NOTES.filter(n => n.drumIndex === drumIndices[d]);
+
+      for (const note of drumNotes) {
+        // 花弁の位置をドラム内 % からスクリーン座標に変換
+        const noteScreenX = rect.left + (note.left / 100) * rect.width;
+        const noteScreenY = rect.top + (note.top / 100) * rect.height;
+        const dx = clientX - noteScreenX;
+        const dy = clientY - noteScreenY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < HIT_RADIUS) {
+          return note.id;
+        }
+      }
+    }
+    return null;
+  }, []);
+
+  // スワイプ: 花弁を鳴らす（cooldown 付き）
+  const triggerSwipeNote = useCallback((noteId: string) => {
+    const now = Date.now();
+    const lastTime = swipeCooldownRef.current[noteId] || 0;
+    if (now - lastTime < 120) return; // 120ms cooldown
+    swipeCooldownRef.current[noteId] = now;
+    spawnDrop(noteId);
+  }, [spawnDrop]);
+
+  // スワイプ開始
+  const handleSwipeStart = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    isDraggingRef.current = true;
+    lastSwipedNoteRef.current = null;
+    swipeCooldownRef.current = {};
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const noteId = findNoteAtPoint(clientX, clientY);
+    if (noteId) {
+      lastSwipedNoteRef.current = noteId;
+      triggerSwipeNote(noteId);
+    }
+  }, [findNoteAtPoint, triggerSwipeNote]);
+
+  // スワイプ中
+  const handleSwipeMove = useCallback((e: React.TouchEvent | React.MouseEvent) => {
+    if (!isDraggingRef.current) return;
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const noteId = findNoteAtPoint(clientX, clientY);
+
+    if (noteId && noteId !== lastSwipedNoteRef.current) {
+      lastSwipedNoteRef.current = noteId;
+      triggerSwipeNote(noteId);
+    }
+  }, [findNoteAtPoint, triggerSwipeNote]);
+
+  // スワイプ終了
+  const handleSwipeEnd = useCallback(() => {
+    isDraggingRef.current = false;
+    lastSwipedNoteRef.current = null;
+  }, []);
 
   useEffect(() => {
     if (!isAutoPlaying || isTimerFinished) {
@@ -1086,12 +1171,22 @@ const App: React.FC = () => {
       )}
 
       {/* Main Drum UI */}
-      <div className="absolute w-full h-full pointer-events-none z-30 animate-wa-float">
-        <div className="absolute" style={{ left: '32%', top: `${PAD_Y_PERCENT}%`, width: drumSize, height: drumSize, transform: 'translate(-50%, -50%)' }}>
+      <div
+        className="absolute w-full h-full z-30 animate-wa-float"
+        style={{ pointerEvents: 'auto', touchAction: 'none' }}
+        onTouchStart={handleSwipeStart}
+        onTouchMove={handleSwipeMove}
+        onTouchEnd={handleSwipeEnd}
+        onMouseDown={handleSwipeStart}
+        onMouseMove={handleSwipeMove}
+        onMouseUp={handleSwipeEnd}
+        onMouseLeave={handleSwipeEnd}
+      >
+        <div ref={leftDrumRef} className="absolute" style={{ left: '32%', top: `${PAD_Y_PERCENT}%`, width: drumSize, height: drumSize, transform: 'translate(-50%, -50%)' }}>
           <div className="absolute inset-0 rounded-full border border-white/10 backdrop-blur-2xl" style={{ backgroundColor: currentTheme.drumColor }}></div>
           {NOTES.filter(n => n.drumIndex === 0).map((note) => (<DrumButton key={note.id} note={note} activeNote={activeNote} spawnDrop={spawnDrop} />))}
         </div>
-        <div className="absolute" style={{ left: '68%', top: `${PAD_Y_PERCENT}%`, width: drumSize, height: drumSize, transform: 'translate(-50%, -50%)' }}>
+        <div ref={rightDrumRef} className="absolute" style={{ left: '68%', top: `${PAD_Y_PERCENT}%`, width: drumSize, height: drumSize, transform: 'translate(-50%, -50%)' }}>
           <div className="absolute inset-0 rounded-full border border-white/10 backdrop-blur-2xl" style={{ backgroundColor: currentTheme.drumColor }}></div>
           {NOTES.filter(n => n.drumIndex === 1).map((note) => (<DrumButton key={note.id} note={note} activeNote={activeNote} spawnDrop={spawnDrop} />))}
         </div>
@@ -1235,9 +1330,9 @@ const App: React.FC = () => {
 
 
       {timerRemaining !== null && !isTimerFinished && (
-        <div className="absolute top-2 sm:top-12 left-1/2 transform -translate-x-1/2 z-40 flex flex-col items-center gap-2 sm:gap-8 scale-[0.4] sm:scale-100 origin-top transition-transform">
+        <div className="absolute top-2 sm:top-12 left-1/2 transform -translate-x-1/2 z-40 flex flex-col items-center gap-2 sm:gap-4 scale-[0.75] sm:scale-110 origin-top transition-transform">
           <div className="relative">
-            <div className={`relative w-14 h-64 transition-transform duration-[1500ms] ease-in-out origin-center ${isShishiodoshiTilting ? 'rotate-[110deg]' : 'rotate-0'}`}>
+            <div className={`relative w-14 h-40 transition-transform duration-[1500ms] ease-in-out origin-center ${isShishiodoshiTilting ? 'rotate-[110deg]' : 'rotate-0'}`}>
               <div className="absolute inset-0 rounded-full border-r border-white/10 border-b border-black/30 shadow-[0_0_40px_rgba(0,0,0,0.6)] overflow-hidden bg-gradient-to-r from-emerald-900/40 via-emerald-700/40 to-emerald-950/40 backdrop-blur-2xl">
                 <div className="absolute bottom-0 left-0 w-full bg-sky-400/20 transition-all duration-1000 ease-linear" style={{ height: `${((timerTotal! - timerRemaining) / timerTotal!) * 100}%` }}></div>
               </div>
@@ -1245,12 +1340,12 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-col items-center mt-4 gap-4">
-            <span className="text-xl font-serif text-white tracking-[0.3em] bg-emerald-950/30 border border-white/10 px-10 py-3 rounded-full shadow-3xl backdrop-blur-3xl">{Math.floor(timerRemaining / 60)}:{String(timerRemaining % 60).padStart(2, '0')}</span>
+            <span className="text-4xl font-serif text-white tracking-[0.3em] bg-emerald-950/30 border border-white/10 px-16 py-5 rounded-full shadow-3xl backdrop-blur-3xl">{Math.floor(timerRemaining / 60)}:{String(timerRemaining % 60).padStart(2, '0')}</span>
             <button
               onClick={cancelTimer}
-              className="flex items-center gap-2 px-6 py-2 bg-black/40 hover:bg-black/60 text-white/60 hover:text-white border border-white/10 rounded-full text-[10px] uppercase tracking-widest transition-all"
+              className="flex items-center gap-3 px-10 py-4 bg-black/40 hover:bg-black/60 text-white/60 hover:text-white border border-white/10 rounded-full text-[14px] uppercase tracking-widest transition-all"
             >
-              <Ban size={12} /> キャンセル
+              <Ban size={18} /> キャンセル
             </button>
           </div>
         </div>
@@ -1281,13 +1376,13 @@ const DrumButton: React.FC<{ note: Note, activeNote: string | null, spawnDrop: (
   const petalPath = "M25 50 C 5 35, 0 10, 25 0 C 50 10, 45 35, 25 50";
   const angle = Math.atan2(note.top - 50, note.left - 50) + Math.PI / 2;
   return (
-    <button onMouseDown={(e) => { e.stopPropagation(); spawnDrop(note.id); }} onTouchStart={(e) => { e.preventDefault(); e.stopPropagation(); spawnDrop(note.id); }} className="absolute pointer-events-auto transform -translate-x-1/2 -translate-y-1/2" style={{ left: `${note.left}%`, top: `${note.top}%` }}>
+    <div className="absolute pointer-events-none transform -translate-x-1/2 -translate-y-1/2" style={{ left: `${note.left}%`, top: `${note.top}%` }}>
       <div className="w-16 h-16 md:w-20 md:h-20 transition-all duration-1000" style={{ transform: `rotate(${angle}rad)` }}>
         <div className={`w-full h-full ${isActive ? 'animate-bloom' : 'hover:scale-105 transition-transform duration-300'}`}>
           <svg viewBox="0 0 50 50" className="w-full h-full overflow-visible"><path d={petalPath} fill={isActive ? '#ffffff' : 'rgba(255, 255, 255, 0.25)'} stroke={isActive ? '#fbcfe8' : 'rgba(255, 255, 255, 0.45)'} strokeWidth="1.0" /></svg>
         </div>
       </div>
-    </button>
+    </div>
   );
 };
 
