@@ -106,4 +106,4 @@ export const SHISHIODOSHI_PRESETS: TimerPreset[] = [
 ];
 
 export const GRAVITY_SPEED = 12;
-export const PAD_Y_PERCENT = 58;
+export const PAD_Y_PERCENT = 54;
