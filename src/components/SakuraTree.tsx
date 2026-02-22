@@ -9,7 +9,7 @@ const SakuraTree: React.FC<Props> = ({ streak, justReset }) => {
     // SVGツリーの座標系は 0,0 から 200,200 とする
     // 幹と枝を描画
     const renderBranches = () => (
-        <g stroke="rgba(255, 255, 255, 0.15)" strokeWidth="2" strokeLinecap="round" fill="none">
+        <g stroke="rgba(30, 20, 15, 0.85)" strokeWidth="2" strokeLinecap="round" fill="none">
             {/* 幹 */}
             <path d="M100 200 Q90 150 100 100" strokeWidth="4" />
             {/* 左の枝 */}
