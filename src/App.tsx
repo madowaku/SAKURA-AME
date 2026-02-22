@@ -143,6 +143,74 @@ const SOUND_LABELS: Record<SoundType, string> = {
   Deep: '深響'
 };
 
+const SERENE_QUOTES = [
+  "雨の音に、心を寄せて。",
+  "静寂は、波紋のなかに。",
+  "散る花も、また一興。",
+  "時の流れを、音に聴く。",
+  "心、洗われる雨。",
+  "静かな庭で、自分と向き合う。",
+  "一滴の雫が、世界を揺らす。",
+  "雨上がり、虹を待つ心。",
+  "風のささやき、花の溜息。",
+  "立ち止まることも、旅のひとつ。",
+  "空からの恵み、大地への調べ。",
+  "今日の雨が、明日の花を咲かせる。",
+  "ただ、ここに在ることの贅沢。",
+  "雑音を捨て、雨音に溶ける。",
+  "揺れる花びら、変わらぬ静けさ。",
+  "雨の音は、空からの手紙。",
+  "雨音の隙間へ、忘れものを探しに。",
+  "散る花びらは、風が書いた物語のひとかけら。",
+  "さよならも言わず、春は透き通る。",
+  "名前のない感情も、この雨が流してくれる。",
+  "世界が眠るまで、庭の呼吸を聴いている。",
+  "降り積もる音だけが、いまの私を知っている。",
+  "昨日までの渇きを、ひとしずくの音が癒やす。",
+  "空が泣き止むまで、ここで静けさを編もう。",
+  "静けさの中に、答えは落ちている。",
+  "心に雨が降っても、あなたの庭は枯れない。",
+  "一雨ごとに、春は深まり、心は透き通る。",
+  "今日は、ただ雨音を聴くだけで十分。",
+  "何もしない時間は、心を耕す時間。",
+  "誰かのためではなく、自分のための静寂を。",
+  "呼吸を整える。ただそれだけで、庭は深まる。",
+  "春の雨は、優しく心をほどいてくれる。",
+  "雨は、明日への準備。",
+  "花びらが、雨を受け止めている。",
+  "濡れた枝先に、春が宿る。",
+  "まだ散らない花もある。",
+  "雨粒が、枝先でひと息つく。",
+  "まだ開かない蕾も、春を知っている。",
+  "花の影が、水面でほどけていく。",
+  "濡れた石畳に、やわらかな時間。",
+  "風が止むと、雨の声が近づく。",
+  "花びらは、急がない。",
+  "庭の奥で、小さな春が揺れる。",
+  "曇り空にも、光はある。",
+  "雨は、静けさの輪郭を描く。",
+  "濡れた空気が、心をやわらげる。",
+  "桜は、散るために咲いている。",
+  "ひとしずく、またひとしずく。",
+  "春は、音のかたちをしている。",
+  "遠くの雨が、こちらへ歩いてくる。",
+  "花びらが、水に溶ける。",
+  "まだ何も決めなくていい。",
+  "雨は、急かさない。",
+  "濡れた土が、静かに息をする。",
+  "枝の先に、今日が宿る。",
+  "空は、低くやさしい。",
+  "雨音が、部屋をやわらかくする。",
+  "咲いていることに、理由はいらない。",
+  "風は、花の記憶を運ぶ。",
+  "春の庭は、まだ眠らない。",
+  "音だけが、ここにある。",
+  "花びらが、時間をほどく。",
+  "雨は、遠い日の匂い。",
+  "散ることも、春のひとつ。",
+  "水たまりに、空が落ちる。",
+];
+
 const App: React.FC = () => {
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [hasStarted, setHasStarted] = useState(false);
@@ -230,6 +298,8 @@ const App: React.FC = () => {
     };
     return saved ? JSON.parse(saved) : defaultAmbience;
   });
+
+  const [currentQuote, setCurrentQuote] = useState("");
 
   const requestRef = useRef<number>(null);
   const activeNotificationRef = useRef<Notification | null>(null);
@@ -429,6 +499,12 @@ const App: React.FC = () => {
         img.src = src;
       }
     });
+  }, []);
+
+  // 起動時の「一言」をセット
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * SERENE_QUOTES.length);
+    setCurrentQuote(SERENE_QUOTES[randomIndex]);
   }, []);
 
   const finishTimer = () => {
@@ -1026,10 +1102,26 @@ const App: React.FC = () => {
       )}
 
       {!isPremium && (
-        <div className="absolute top-8 left-8 z-40">
+        <div className="absolute top-8 left-8 z-40 flex flex-col gap-4">
           <button onClick={() => setShowPremiumModal(true)} className="flex items-center gap-2 px-6 py-2 bg-sakura-500/20 hover:bg-sakura-500/40 text-sakura-100 border border-sakura-400/30 rounded-full transition-all duration-700 ease-wa-ease  /* 👈 ここで統一感のある動きを適用 */backdrop-blur-md shadow-[0_0_15px_rgba(236,72,153,0.1)] animate-pulse-slow">
             <Flower size={14} className="text-sakura-200" /><span>Unlock Full Garden</span>
           </button>
+
+          {currentQuote && (
+            <div className="px-2 animate-fade-in">
+              <p className="text-[10px] sm:text-xs font-serif text-sakura-100/60 tracking-[0.2em] leading-relaxed italic">
+                {currentQuote}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isPremium && currentQuote && (
+        <div className="absolute top-8 left-8 z-40 px-2 animate-fade-in">
+          <p className="text-[10px] sm:text-xs font-serif text-sakura-100/60 tracking-[0.2em] leading-relaxed italic">
+            {currentQuote}
+          </p>
         </div>
       )}
 
