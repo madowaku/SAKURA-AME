@@ -40,6 +40,7 @@ import { NOTES, THEMES, GRAVITY_SPEED, PAD_Y_PERCENT, SHISHIODOSHI_PRESETS } fro
 import { audioEngine } from './services/audioEngine';
 import { billingService } from './services/billingService';
 import SakuraVisualizer from './components/SakuraVisualizer';
+import SakuraTree from './components/SakuraTree';
 import './index.css'; // これが Tailwind の設定を含んでるはずや！
 
 interface SongStep {
@@ -157,11 +158,9 @@ const SERENE_QUOTES = [
   "揺れる花びら、変わらぬ静けさ",
   "雨の音は、空からの手紙",
   "雨音の隙間へ、忘れものを探しに",
-  "散る花びらは、風が書いた物語のひとかけら",
+  "風が書いた物語のひとかけら",
   "さよならも言わず、春は透き通る",
-  "名前のない感情も、この雨が流してくれる",
   "世界が眠るまで、庭の呼吸を聴いている",
-  "降り積もる音だけが、いまの私を知っている",
   "昨日までの渇きを、ひとしずくの音が癒やす",
   "空が泣き止むまで、ここで静けさを編もう",
   "静けさの中に、答えは落ちている",
@@ -314,6 +313,9 @@ const App: React.FC = () => {
 
   const [currentQuote, setCurrentQuote] = useState("");
 
+  const [loginStreak, setLoginStreak] = useState<number>(1);
+  const [justResetStreak, setJustResetStreak] = useState(false);
+
   const requestRef = useRef<number>(null);
   const activeNotificationRef = useRef<Notification | null>(null);
 
@@ -329,6 +331,39 @@ const App: React.FC = () => {
     if (localPremium === 'true') {
       setIsPremium(true);
     }
+  }, []);
+
+  // 起動日数の管理 (Sakura Tree)
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const lastOpened = localStorage.getItem('sakura_ame_last_opened');
+    let streak = parseInt(localStorage.getItem('sakura_ame_login_streak') || '1', 10);
+
+    if (lastOpened !== today) {
+      if (lastOpened) {
+        // 前回の記録がある場合のみカウントアップ（初回は1のまま）
+        if (streak >= 15) {
+          // 15日目に達した次の日は 1 にリセット
+          streak = 1;
+        } else {
+          streak += 1;
+        }
+      }
+      localStorage.setItem('sakura_ame_last_opened', today);
+      localStorage.setItem('sakura_ame_login_streak', streak.toString());
+
+      if (streak === 15) {
+        setJustResetStreak(true); // 今回散るアニメーションを見せるフラグ
+      }
+    } else {
+      // 今日すでに開いている場合は、リロード時に15日目なら再度アニメーションを見せるか、そのままにするか。
+      // 今回は「15日目の間は何度でも散る」仕様とする。
+      if (streak === 15) {
+        setJustResetStreak(true);
+      }
+    }
+
+    setLoginStreak(streak);
   }, []);
 
   useEffect(() => {
@@ -1034,6 +1069,8 @@ const App: React.FC = () => {
           />
 
           <div className="absolute inset-0 z-10 bg-black/20" />
+
+          <SakuraTree streak={loginStreak} justReset={justResetStreak} />
         </div>
 
         {/* UIレイヤー */}
