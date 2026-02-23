@@ -321,6 +321,8 @@ const App: React.FC = () => {
 
   const requestRef = useRef<number>(null);
   const activeNotificationRef = useRef<Notification | null>(null);
+  const bgNotificationIntervalRef = useRef<number | null>(null);
+  const timerRemainingRef = useRef<number | null>(timerRemaining);
 
   // スワイプ追跡用 refs
   const isDraggingRef = useRef(false);
@@ -402,7 +404,7 @@ const App: React.FC = () => {
           icon: 'notification-icon.png',
           badge: 'notification-icon.png',
           tag: 'sakura-ame-bg',
-          renotify: false,
+          renotify: true,
           silent: true,
           actions: [
             { action: 'stop', title: '雨を止める' }
@@ -423,11 +425,24 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // timerRemaining の最新値を ref に同期（バックグラウンドインターバルから参照するため）
+  useEffect(() => {
+    timerRemainingRef.current = timerRemaining;
+  }, [timerRemaining]);
+
   // visibilitychange: バックグラウンド時のミュート & 通知
   useEffect(() => {
+    const stopBgInterval = () => {
+      if (bgNotificationIntervalRef.current) {
+        window.clearInterval(bgNotificationIntervalRef.current);
+        bgNotificationIntervalRef.current = null;
+      }
+    };
+
     const handleVisibility = () => {
       if (!document.hidden) {
         // フォアグラウンド復帰
+        stopBgInterval();
         setDrops([]);
         if (!isMuted) {
           audioEngine.setMasterVolume(masterVolume);
@@ -449,14 +464,21 @@ const App: React.FC = () => {
           // OFF → ミュート
           audioEngine.setMasterVolume(0);
         } else {
-          // ON → 通知を出す
-          showBackgroundNotification(timerRemaining);
+          // ON → 即座に通知表示 & 1秒ごとに更新
+          showBackgroundNotification(timerRemainingRef.current);
+          stopBgInterval();
+          bgNotificationIntervalRef.current = window.setInterval(() => {
+            showBackgroundNotification(timerRemainingRef.current);
+          }, 1000);
         }
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [backgroundPlayback, isMuted, masterVolume, showBackgroundNotification, timerRemaining]);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      stopBgInterval();
+    };
+  }, [backgroundPlayback, isMuted, masterVolume, showBackgroundNotification]);
 
   // Service Worker からの STOP_RAIN メッセージをリッスン
   useEffect(() => {
