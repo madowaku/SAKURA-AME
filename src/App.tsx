@@ -290,6 +290,7 @@ const App: React.FC = () => {
   const [timerTotal, setTimerTotal] = useState<number | null>(null);
   const [timerRemaining, setTimerRemaining] = useState<number | null>(null);
   const [isTimerFinished, setIsTimerFinished] = useState(false);
+  const [isTimerFinishedFading, setIsTimerFinishedFading] = useState(false);
   const [isShishiodoshiTilting, setIsShishiodoshiTilting] = useState(false);
 
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
@@ -1030,15 +1031,21 @@ const App: React.FC = () => {
   };
 
   const resetExperience = () => {
-    setIsTimerFinished(false);
-    setTimerRemaining(null);
-    setTimerTotal(null);
-    setIsAutoPlaying(false);
-    setActiveEffect('none');
-    audioEngine.setMasterVolume(masterVolume);
-    setDrops([]);
-    setParticles([]);
-    setRipples([]);
+    // まずフェードアウトを開始
+    setIsTimerFinishedFading(true);
+    // 1秒後（CSSトランジション完了後）に画面を実際にリセット
+    setTimeout(() => {
+      setIsTimerFinished(false);
+      setIsTimerFinishedFading(false);
+      setTimerRemaining(null);
+      setTimerTotal(null);
+      setIsAutoPlaying(false);
+      setActiveEffect('none');
+      audioEngine.setMasterVolume(masterVolume);
+      setDrops([]);
+      setParticles([]);
+      setRipples([]);
+    }, 1000);
   };
 
   const resetSoundSettings = () => {
@@ -1179,7 +1186,14 @@ const App: React.FC = () => {
 
 
       {isTimerFinished && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-lg animate-in fade-in duration-1000">
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-lg animate-in fade-in duration-1000"
+          style={{
+            opacity: isTimerFinishedFading ? 0 : 1,
+            transition: 'opacity 1s ease-in-out',
+            pointerEvents: isTimerFinishedFading ? 'none' : 'auto',
+          }}
+        >
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none">
             <div className="w-96 h-96 rounded-full border border-white/10 animate-ripple-out"></div>
             <div className="w-96 h-96 rounded-full border border-white/10 animate-ripple-out delay-700"></div>
