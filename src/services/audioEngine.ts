@@ -33,13 +33,13 @@ class AudioEngine {
   init() {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 44100 });
-      
+
       this.masterGain = this.ctx.createGain();
       this.mainFilter = this.ctx.createBiquadFilter();
       this.compressor = this.ctx.createDynamicsCompressor();
 
       this.mainFilter.type = 'lowpass';
-      this.mainFilter.frequency.value = 9000; 
+      this.mainFilter.frequency.value = 9000;
 
       this.compressor.threshold.setValueAtTime(-24, this.ctx.currentTime);
       this.compressor.knee.setValueAtTime(30, this.ctx.currentTime);
@@ -121,7 +121,7 @@ class AudioEngine {
       case 'birds': this.playUguisu(vol); break;
       case 'smallBirds': this.playSmallBirds(vol); break;
       case 'windChime': this.playWindChime(vol); break;
-      case 'thunder': this.playDistantThunder(vol); break; 
+      case 'thunder': this.playDistantThunder(vol); break;
       case 'suikinkutsu': this.playSuikinkutsu(vol); break;
       case 'crickets': this.playCricket(vol); break;
     }
@@ -155,23 +155,23 @@ class AudioEngine {
         break;
       }
       case 'MusicBox': {
-       osc.type = 'sine';
+        osc.type = 'sine';
 
-       const osc2 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
         osc2.type = 'sine';
-       osc2.frequency.setValueAtTime(freq * 2.0, t);
+        osc2.frequency.setValueAtTime(freq * 2.0, t);
 
         const highpass = this.ctx.createBiquadFilter();
-       highpass.type = 'highpass';
-       highpass.frequency.value = 500;
+        highpass.type = 'highpass';
+        highpass.frequency.value = 500;
 
-       osc.connect(highpass);
-       osc2.connect(highpass);
-       highpass.connect(gain);
+        osc.connect(highpass);
+        osc2.connect(highpass);
+        highpass.connect(gain);
 
-       gain.gain.setValueAtTime(0, t);
-       gain.gain.linearRampToValueAtTime(0.4, t + 0.01);
-       gain.gain.exponentialRampToValueAtTime(0.001, t + 2.8);
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.4, t + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 2.8);
 
         osc.frequency.setValueAtTime(freq, t);
 
@@ -205,7 +205,7 @@ class AudioEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 4.0); // 長い余韻
 
         osc.frequency.setValueAtTime(freq, t);
-        
+
         osc2.start(t);
         osc2.stop(t + 4.0);
 
@@ -235,7 +235,7 @@ class AudioEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
 
         osc.frequency.setValueAtTime(freq, t);
-        
+
         subOsc.start(t);
         subOsc.stop(t + 3.5);
 
@@ -301,12 +301,12 @@ class AudioEngine {
   createKapponSound() {
     if (!this.ctx) return;
     const sampleRate = this.ctx.sampleRate;
-    const duration = 2.0; 
+    const duration = 2.0;
     const buffer = this.ctx.createBuffer(1, sampleRate * duration, sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < buffer.length; i++) {
-        const t = i / sampleRate;
-        data[i] = (Math.sin(t * 1200 * Math.PI * 2) * Math.exp(-t * 200) * 0.5 + (Math.sin(t * 220 * Math.PI * 2) * 0.6) * Math.exp(-t * 12)) * 0.8;
+      const t = i / sampleRate;
+      data[i] = (Math.sin(t * 1200 * Math.PI * 2) * Math.exp(-t * 200) * 0.5 + (Math.sin(t * 220 * Math.PI * 2) * 0.6) * Math.exp(-t * 12)) * 0.8;
     }
     this.kapponBuffer = buffer;
   }
@@ -323,51 +323,88 @@ class AudioEngine {
     setTimeout(playOnce, 1200);
   }
 
+  // 鍵アイコンタップ時の「コト」音
+  playLockSound() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const gain = this.ctx.createGain();
+    gain.connect(this.ctx.destination);
+
+    // 乾いた打撃音（高周波＋ノイズ）
+    const clickOsc = this.ctx.createOscillator();
+    clickOsc.type = 'triangle';
+    clickOsc.frequency.setValueAtTime(1200, t);
+    clickOsc.frequency.exponentialRampToValueAtTime(600, t + 0.06);
+
+    const noise = this.ctx.createBufferSource();
+    const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.05, this.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.4;
+    noise.buffer = buf;
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.3, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.6, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+    clickOsc.connect(gain);
+    noise.connect(noiseGain);
+    noiseGain.connect(gain);
+
+    clickOsc.start(t);
+    clickOsc.stop(t + 0.2);
+    noise.start(t);
+    noise.stop(t + 0.05);
+  }
+
   playTempleBell() {
-  if (!this.ctx || !this.masterGain) return;
+    if (!this.ctx || !this.masterGain) return;
 
-  const t = this.ctx.currentTime;
-  const baseFreq = 130; // 少し上げる
+    const t = this.ctx.currentTime;
+    const baseFreq = 130; // 少し上げる
 
-  const bellGain = this.ctx.createGain();
-  bellGain.connect(this.masterGain);
+    const bellGain = this.ctx.createGain();
+    bellGain.connect(this.masterGain);
 
-  bellGain.gain.setValueAtTime(0, t);
-  bellGain.gain.linearRampToValueAtTime(2.5, t + 0.05);
-  bellGain.gain.exponentialRampToValueAtTime(0.001, t + 16);
+    bellGain.gain.setValueAtTime(0, t);
+    bellGain.gain.linearRampToValueAtTime(2.5, t + 0.05);
+    bellGain.gain.exponentialRampToValueAtTime(0.001, t + 16);
 
-  // 基音
-  const fundamental = this.ctx.createOscillator();
-  fundamental.type = 'sine';
-  fundamental.frequency.setValueAtTime(baseFreq, t);
+    // 基音
+    const fundamental = this.ctx.createOscillator();
+    fundamental.type = 'sine';
+    fundamental.frequency.setValueAtTime(baseFreq, t);
 
-  // 倍音
-  const overtone = this.ctx.createOscillator();
-  overtone.type = 'sine';
-  overtone.frequency.setValueAtTime(baseFreq * 2.3, t);
+    // 倍音
+    const overtone = this.ctx.createOscillator();
+    overtone.type = 'sine';
+    overtone.frequency.setValueAtTime(baseFreq * 2.3, t);
 
-  // 抜け用シマー
-  const shimmer = this.ctx.createOscillator();
-  shimmer.type = 'triangle';
-  shimmer.frequency.setValueAtTime(2000, t);
+    // 抜け用シマー
+    const shimmer = this.ctx.createOscillator();
+    shimmer.type = 'triangle';
+    shimmer.frequency.setValueAtTime(2000, t);
 
-  const shimmerGain = this.ctx.createGain();
-  shimmerGain.gain.setValueAtTime(0.28, t);
-  shimmerGain.gain.exponentialRampToValueAtTime(0.001, t + 3.0);
+    const shimmerGain = this.ctx.createGain();
+    shimmerGain.gain.setValueAtTime(0.28, t);
+    shimmerGain.gain.exponentialRampToValueAtTime(0.001, t + 3.0);
 
-  fundamental.connect(bellGain);
-  overtone.connect(bellGain);
-  shimmer.connect(shimmerGain);
-  shimmerGain.connect(bellGain);
+    fundamental.connect(bellGain);
+    overtone.connect(bellGain);
+    shimmer.connect(shimmerGain);
+    shimmerGain.connect(bellGain);
 
-  fundamental.start(t);
-  overtone.start(t);
-  shimmer.start(t);
+    fundamental.start(t);
+    overtone.start(t);
+    shimmer.start(t);
 
-  fundamental.stop(t + 16);
-  overtone.stop(t + 16);
-  shimmer.stop(t + 3.0);
-}
+    fundamental.stop(t + 16);
+    overtone.stop(t + 16);
+    shimmer.stop(t + 3.0);
+  }
 
 
 
@@ -376,175 +413,175 @@ class AudioEngine {
     this.ambienceState[type].active = active;
     this.ambienceState[type].volume = vol;
     if (['rain', 'wind', 'river', 'honeybee'].includes(type)) {
-        this.handleContinuousNoise(type, active, vol);
+      this.handleContinuousNoise(type, active, vol);
     }
   }
 
   private handleContinuousNoise(type: string, active: boolean, vol: number) {
-      if (active) {
-          if (!this.ambienceState[type as AmbienceType].nodes) {
-            const bufferSize = 2 * this.ctx!.sampleRate;
-            if (!this.buffers[type]) {
-                const buffer = this.ctx!.createBuffer(1, bufferSize, this.ctx!.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-                this.buffers[type] = buffer;
-            }
+    if (active) {
+      if (!this.ambienceState[type as AmbienceType].nodes) {
+        const bufferSize = 2 * this.ctx!.sampleRate;
+        if (!this.buffers[type]) {
+          const buffer = this.ctx!.createBuffer(1, bufferSize, this.ctx!.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          this.buffers[type] = buffer;
+        }
 
-            if (type === 'rain') {
-                const sourceDistant = this.ctx!.createBufferSource();
-                sourceDistant.buffer = this.buffers['rain'];
-                sourceDistant.loop = true;
-                const filterDistant = this.ctx!.createBiquadFilter();
-                filterDistant.type = 'lowpass';
-                filterDistant.frequency.value = 800; 
-                const gainDistant = this.ctx!.createGain();
-                gainDistant.gain.setValueAtTime(0, this.ctx!.currentTime);
-                gainDistant.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.distantRain, this.ctx!.currentTime, 2.0);
+        if (type === 'rain') {
+          const sourceDistant = this.ctx!.createBufferSource();
+          sourceDistant.buffer = this.buffers['rain'];
+          sourceDistant.loop = true;
+          const filterDistant = this.ctx!.createBiquadFilter();
+          filterDistant.type = 'lowpass';
+          filterDistant.frequency.value = 800;
+          const gainDistant = this.ctx!.createGain();
+          gainDistant.gain.setValueAtTime(0, this.ctx!.currentTime);
+          gainDistant.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.distantRain, this.ctx!.currentTime, 2.0);
 
-                const sourceEaves = this.ctx!.createBufferSource();
-                sourceEaves.buffer = this.buffers['rain'];
-                sourceEaves.loop = true;
-                const filterEaves = this.ctx!.createBiquadFilter();
-                filterEaves.type = 'bandpass';
-                filterEaves.frequency.value = 2500;
-                filterEaves.Q.value = 0.5;
-                const gainEaves = this.ctx!.createGain();
-                gainEaves.gain.setValueAtTime(0, this.ctx!.currentTime);
-                gainEaves.gain.setTargetAtTime(vol * 0.08 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 2.5);
+          const sourceEaves = this.ctx!.createBufferSource();
+          sourceEaves.buffer = this.buffers['rain'];
+          sourceEaves.loop = true;
+          const filterEaves = this.ctx!.createBiquadFilter();
+          filterEaves.type = 'bandpass';
+          filterEaves.frequency.value = 2500;
+          filterEaves.Q.value = 0.5;
+          const gainEaves = this.ctx!.createGain();
+          gainEaves.gain.setValueAtTime(0, this.ctx!.currentTime);
+          gainEaves.gain.setTargetAtTime(vol * 0.08 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 2.5);
 
-                sourceDistant.connect(filterDistant);
-                filterDistant.connect(gainDistant);
-                gainDistant.connect(this.masterGain!);
+          sourceDistant.connect(filterDistant);
+          filterDistant.connect(gainDistant);
+          gainDistant.connect(this.masterGain!);
 
-                sourceEaves.connect(filterEaves);
-                filterEaves.connect(gainEaves);
-                gainEaves.connect(this.masterGain!);
+          sourceEaves.connect(filterEaves);
+          filterEaves.connect(gainEaves);
+          gainEaves.connect(this.masterGain!);
 
-                sourceDistant.start();
-                sourceEaves.start();
+          sourceDistant.start();
+          sourceEaves.start();
 
-                this.ambienceState['rain'].nodes = [sourceDistant, gainDistant, filterDistant, sourceEaves, gainEaves, filterEaves];
-            } else {
-                const source = this.ctx!.createBufferSource();
-                source.buffer = this.buffers[type];
-                source.loop = true;
-                const filter = this.ctx!.createBiquadFilter();
-                const gain = this.ctx!.createGain();
-                const panner = this.ctx!.createPanner();
-                panner.panningModel = 'equalpower';
+          this.ambienceState['rain'].nodes = [sourceDistant, gainDistant, filterDistant, sourceEaves, gainEaves, filterEaves];
+        } else {
+          const source = this.ctx!.createBufferSource();
+          source.buffer = this.buffers[type];
+          source.loop = true;
+          const filter = this.ctx!.createBiquadFilter();
+          const gain = this.ctx!.createGain();
+          const panner = this.ctx!.createPanner();
+          panner.panningModel = 'equalpower';
 
-                if (type === 'wind') {
-                  panner.positionX.setValueAtTime(-1, this.ctx!.currentTime);
-                  filter.type = 'lowpass';
-                  filter.frequency.value = 800;
-                } else if (type === 'river') {
-                  panner.positionX.setValueAtTime(0, this.ctx!.currentTime);
-                  filter.type = 'lowpass';
-                  filter.frequency.value = 2000;
-                }
-
-                source.connect(filter);
-                filter.connect(panner);
-                panner.connect(gain);
-                gain.connect(this.masterGain!);
-                
-                let currentBase = vol * 0.45;
-                if (type === 'river') currentBase = vol * 0.25;
-
-                gain.gain.setValueAtTime(0, this.ctx!.currentTime);
-                gain.gain.setTargetAtTime(currentBase, this.ctx!.currentTime, 2.0);
-                source.start();
-                this.ambienceState[type as AmbienceType].nodes = [source, gain, filter, panner];
-            }
-          } else {
-             if (type === 'rain') {
-                const gainDistant = this.ambienceState['rain'].nodes![1] as GainNode;
-                const gainEaves = this.ambienceState['rain'].nodes![4] as GainNode;
-                gainDistant.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.distantRain, this.ctx!.currentTime, 1.0);
-                gainEaves.gain.setTargetAtTime(vol * 0.08 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 1.0);
-             } else {
-                const gain = this.ambienceState[type as AmbienceType].nodes![1] as GainNode;
-                let finalVol = vol * 0.45;
-                if (type === 'river') finalVol = vol * 0.25;
-                gain.gain.setTargetAtTime(finalVol, this.ctx!.currentTime, 1.0);
-             }
+          if (type === 'wind') {
+            panner.positionX.setValueAtTime(-1, this.ctx!.currentTime);
+            filter.type = 'lowpass';
+            filter.frequency.value = 800;
+          } else if (type === 'river') {
+            panner.positionX.setValueAtTime(0, this.ctx!.currentTime);
+            filter.type = 'lowpass';
+            filter.frequency.value = 2000;
           }
-      } else if (this.ambienceState[type as AmbienceType].nodes) {
-          if (type === 'rain') {
-            const gD = this.ambienceState['rain'].nodes![1] as GainNode;
-            const gE = this.ambienceState['rain'].nodes![4] as GainNode;
-            const sD = this.ambienceState['rain'].nodes![0] as AudioBufferSourceNode;
-            const sE = this.ambienceState['rain'].nodes![3] as AudioBufferSourceNode;
-            gD.gain.setTargetAtTime(0, this.ctx!.currentTime, 1.2);
-            gE.gain.setTargetAtTime(0, this.ctx!.currentTime, 1.2);
-            setTimeout(() => { try { sD.stop(); sE.stop(); } catch(e) {} }, 2000);
-          } else {
-            const gain = this.ambienceState[type as AmbienceType].nodes![1] as GainNode;
-            const source = this.ambienceState[type as AmbienceType].nodes![0] as AudioBufferSourceNode;
-            gain.gain.setTargetAtTime(0, this.ctx!.currentTime, 1.2);
-            setTimeout(() => { try { source.stop(); } catch(e) {} }, 2000);
-          }
-          this.ambienceState[type as AmbienceType].nodes = undefined;
+
+          source.connect(filter);
+          filter.connect(panner);
+          panner.connect(gain);
+          gain.connect(this.masterGain!);
+
+          let currentBase = vol * 0.45;
+          if (type === 'river') currentBase = vol * 0.25;
+
+          gain.gain.setValueAtTime(0, this.ctx!.currentTime);
+          gain.gain.setTargetAtTime(currentBase, this.ctx!.currentTime, 2.0);
+          source.start();
+          this.ambienceState[type as AmbienceType].nodes = [source, gain, filter, panner];
+        }
+      } else {
+        if (type === 'rain') {
+          const gainDistant = this.ambienceState['rain'].nodes![1] as GainNode;
+          const gainEaves = this.ambienceState['rain'].nodes![4] as GainNode;
+          gainDistant.gain.setTargetAtTime(vol * 0.15 * this.layerVolumes.distantRain, this.ctx!.currentTime, 1.0);
+          gainEaves.gain.setTargetAtTime(vol * 0.08 * this.layerVolumes.eavesRain, this.ctx!.currentTime, 1.0);
+        } else {
+          const gain = this.ambienceState[type as AmbienceType].nodes![1] as GainNode;
+          let finalVol = vol * 0.45;
+          if (type === 'river') finalVol = vol * 0.25;
+          gain.gain.setTargetAtTime(finalVol, this.ctx!.currentTime, 1.0);
+        }
       }
+    } else if (this.ambienceState[type as AmbienceType].nodes) {
+      if (type === 'rain') {
+        const gD = this.ambienceState['rain'].nodes![1] as GainNode;
+        const gE = this.ambienceState['rain'].nodes![4] as GainNode;
+        const sD = this.ambienceState['rain'].nodes![0] as AudioBufferSourceNode;
+        const sE = this.ambienceState['rain'].nodes![3] as AudioBufferSourceNode;
+        gD.gain.setTargetAtTime(0, this.ctx!.currentTime, 1.2);
+        gE.gain.setTargetAtTime(0, this.ctx!.currentTime, 1.2);
+        setTimeout(() => { try { sD.stop(); sE.stop(); } catch (e) { } }, 2000);
+      } else {
+        const gain = this.ambienceState[type as AmbienceType].nodes![1] as GainNode;
+        const source = this.ambienceState[type as AmbienceType].nodes![0] as AudioBufferSourceNode;
+        gain.gain.setTargetAtTime(0, this.ctx!.currentTime, 1.2);
+        setTimeout(() => { try { source.stop(); } catch (e) { } }, 2000);
+      }
+      this.ambienceState[type as AmbienceType].nodes = undefined;
+    }
   }
 
   private playUguisu(vol: number) {
-      if (!this.ctx || !this.masterGain) return;
-      const t = this.ctx.currentTime;
-      const panner = this.ctx.createPanner();
-      panner.positionX.setValueAtTime(1.0, t);
-      const gain = this.ctx.createGain();
-      gain.connect(panner);
-      panner.connect(this.masterGain);
-      const osc1 = this.ctx.createOscillator();
-      osc1.frequency.setValueAtTime(1400, t);
-      osc1.frequency.linearRampToValueAtTime(1450, t + 0.6);
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(vol * 0.5, t + 0.1);
-      gain.gain.setTargetAtTime(0, t + 0.5, 0.1);
-      osc1.connect(gain);
-      osc1.start(t);
-      osc1.stop(t + 0.7);
-      const osc2 = this.ctx.createOscillator();
-      const t2 = t + 0.8;
-      osc2.frequency.setValueAtTime(1800, t2);
-      osc2.frequency.exponentialRampToValueAtTime(2600, t2 + 0.1);
-      gain.gain.setTargetAtTime(vol * 0.7, t2, 0.02);
-      gain.gain.setTargetAtTime(0, t2 + 0.15, 0.05);
-      osc2.connect(gain);
-      osc2.start(t2);
-      osc2.stop(t2 + 0.2);
-      const osc3 = this.ctx.createOscillator();
-      const t3 = t + 1.05;
-      osc3.frequency.setValueAtTime(3200, t3);
-      osc3.frequency.linearRampToValueAtTime(3600, t3 + 0.1);
-      osc3.frequency.exponentialRampToValueAtTime(3000, t3 + 0.5);
-      gain.gain.setTargetAtTime(vol * 0.9, t3, 0.05);
-      gain.gain.setTargetAtTime(0, t3 + 0.4, 0.2);
-      osc3.connect(gain);
-      osc3.start(t3);
-      osc3.stop(t3 + 0.8);
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    const panner = this.ctx.createPanner();
+    panner.positionX.setValueAtTime(1.0, t);
+    const gain = this.ctx.createGain();
+    gain.connect(panner);
+    panner.connect(this.masterGain);
+    const osc1 = this.ctx.createOscillator();
+    osc1.frequency.setValueAtTime(1400, t);
+    osc1.frequency.linearRampToValueAtTime(1450, t + 0.6);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(vol * 0.5, t + 0.1);
+    gain.gain.setTargetAtTime(0, t + 0.5, 0.1);
+    osc1.connect(gain);
+    osc1.start(t);
+    osc1.stop(t + 0.7);
+    const osc2 = this.ctx.createOscillator();
+    const t2 = t + 0.8;
+    osc2.frequency.setValueAtTime(1800, t2);
+    osc2.frequency.exponentialRampToValueAtTime(2600, t2 + 0.1);
+    gain.gain.setTargetAtTime(vol * 0.7, t2, 0.02);
+    gain.gain.setTargetAtTime(0, t2 + 0.15, 0.05);
+    osc2.connect(gain);
+    osc2.start(t2);
+    osc2.stop(t2 + 0.2);
+    const osc3 = this.ctx.createOscillator();
+    const t3 = t + 1.05;
+    osc3.frequency.setValueAtTime(3200, t3);
+    osc3.frequency.linearRampToValueAtTime(3600, t3 + 0.1);
+    osc3.frequency.exponentialRampToValueAtTime(3000, t3 + 0.5);
+    gain.gain.setTargetAtTime(vol * 0.9, t3, 0.05);
+    gain.gain.setTargetAtTime(0, t3 + 0.4, 0.2);
+    osc3.connect(gain);
+    osc3.start(t3);
+    osc3.stop(t3 + 0.8);
   }
 
   private playSmallBirds(vol: number) {
     if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
     const panner = this.ctx.createPanner();
-    panner.positionX.setValueAtTime(0.8, t); 
+    panner.positionX.setValueAtTime(0.8, t);
     const gain = this.ctx.createGain();
     gain.connect(panner);
     panner.connect(this.masterGain);
-    for(let i=0; i<3; i++) {
-        const offset = i * 0.3;
-        gain.gain.setTargetAtTime(vol * 0.4, t + offset, 0.01);
-        gain.gain.setTargetAtTime(0, t + offset + 0.08, 0.01);
-        const osc = this.ctx.createOscillator();
-        osc.frequency.setValueAtTime(4000 + Math.random() * 500, t + offset);
-        osc.frequency.exponentialRampToValueAtTime(4800, t + offset + 0.05);
-        osc.connect(gain);
-        osc.start(t + offset);
-        osc.stop(t + offset + 0.1);
+    for (let i = 0; i < 3; i++) {
+      const offset = i * 0.3;
+      gain.gain.setTargetAtTime(vol * 0.4, t + offset, 0.01);
+      gain.gain.setTargetAtTime(0, t + offset + 0.08, 0.01);
+      const osc = this.ctx.createOscillator();
+      osc.frequency.setValueAtTime(4000 + Math.random() * 500, t + offset);
+      osc.frequency.exponentialRampToValueAtTime(4800, t + offset + 0.05);
+      osc.connect(gain);
+      osc.start(t + offset);
+      osc.stop(t + offset + 0.1);
     }
   }
 
@@ -567,81 +604,81 @@ class AudioEngine {
   }
 
   private playDistantThunder(vol: number) {
-      if (!this.ctx || !this.masterGain) return;
-      const t = this.ctx.currentTime;
-      const panner = this.ctx.createPanner();
-      panner.positionX.setValueAtTime(-1.0, t);
-      panner.positionZ.setValueAtTime(-3.0, t); 
-      const gain = this.ctx.createGain();
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(250, t); 
-      filter.Q.setValueAtTime(0.7, t);
-      gain.connect(filter);
-      filter.connect(panner);
-      panner.connect(this.masterGain);
-      const bellVol = vol * 0.85; 
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(bellVol, t + 0.05); 
-      gain.gain.exponentialRampToValueAtTime(bellVol * 0.1, t + 9.0);
-      gain.gain.linearRampToValueAtTime(0, t + 20.0);
-      const frequencies = [38.5, 77.2, 115.8, 154.5, 231.6];
-      frequencies.forEach((f, i) => {
-          const osc = this.ctx!.createOscillator();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(f, t);
-          const oscGain = this.ctx!.createGain();
-          oscGain.gain.setValueAtTime(1.0 / (i + 1), t);
-          osc.connect(oscGain);
-          oscGain.connect(gain);
-          osc.start(t);
-          osc.stop(t + 20);
-      });
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    const panner = this.ctx.createPanner();
+    panner.positionX.setValueAtTime(-1.0, t);
+    panner.positionZ.setValueAtTime(-3.0, t);
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(250, t);
+    filter.Q.setValueAtTime(0.7, t);
+    gain.connect(filter);
+    filter.connect(panner);
+    panner.connect(this.masterGain);
+    const bellVol = vol * 0.85;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(bellVol, t + 0.05);
+    gain.gain.exponentialRampToValueAtTime(bellVol * 0.1, t + 9.0);
+    gain.gain.linearRampToValueAtTime(0, t + 20.0);
+    const frequencies = [38.5, 77.2, 115.8, 154.5, 231.6];
+    frequencies.forEach((f, i) => {
+      const osc = this.ctx!.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, t);
+      const oscGain = this.ctx!.createGain();
+      oscGain.gain.setValueAtTime(1.0 / (i + 1), t);
+      osc.connect(oscGain);
+      oscGain.connect(gain);
+      osc.start(t);
+      osc.stop(t + 20);
+    });
   }
 
   private playSuikinkutsu(vol: number) {
-      if (!this.ctx || !this.masterGain) return;
-      const t = this.ctx.currentTime;
-      const panner = this.ctx.createPanner();
-      panner.positionX.setValueAtTime(0, t);
-      const gain = this.ctx.createGain();
-      gain.connect(panner);
-      panner.connect(this.masterGain);
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(vol * 1.0, t + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 5);
-      const osc = this.ctx.createOscillator();
-      osc.frequency.setValueAtTime(800 + Math.random() * 400, t);
-      osc.connect(gain);
-      osc.start(t);
-      osc.stop(t + 5);
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    const panner = this.ctx.createPanner();
+    panner.positionX.setValueAtTime(0, t);
+    const gain = this.ctx.createGain();
+    gain.connect(panner);
+    panner.connect(this.masterGain);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(vol * 1.0, t + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 5);
+    const osc = this.ctx.createOscillator();
+    osc.frequency.setValueAtTime(800 + Math.random() * 400, t);
+    osc.connect(gain);
+    osc.start(t);
+    osc.stop(t + 5);
   }
 
   private playCricket(vol: number) {
-      if (!this.ctx || !this.masterGain) return;
-      const t = this.ctx.currentTime;
-      const panner = this.ctx.createPanner();
-      panner.positionX.setValueAtTime(-0.5, t);
-      const gain = this.ctx.createGain();
-      const modGain = this.ctx.createGain(); 
-      gain.connect(panner);
-      panner.connect(this.masterGain);
-      const baseFreq = 4800 + Math.random() * 200;
-      const lfo = this.ctx.createOscillator();
-      lfo.type = 'square';
-      lfo.frequency.setValueAtTime(12, t);
-      lfo.connect(modGain.gain);
-      const osc = this.ctx.createOscillator();
-      osc.frequency.setValueAtTime(baseFreq, t);
-      osc.connect(modGain);
-      modGain.connect(gain);
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(vol * 0.25, t + 0.1);
-      gain.gain.setTargetAtTime(0, t + 1.2, 0.4);
-      lfo.start(t);
-      osc.start(t);
-      lfo.stop(t + 1.8);
-      osc.stop(t + 1.8);
+    if (!this.ctx || !this.masterGain) return;
+    const t = this.ctx.currentTime;
+    const panner = this.ctx.createPanner();
+    panner.positionX.setValueAtTime(-0.5, t);
+    const gain = this.ctx.createGain();
+    const modGain = this.ctx.createGain();
+    gain.connect(panner);
+    panner.connect(this.masterGain);
+    const baseFreq = 4800 + Math.random() * 200;
+    const lfo = this.ctx.createOscillator();
+    lfo.type = 'square';
+    lfo.frequency.setValueAtTime(12, t);
+    lfo.connect(modGain.gain);
+    const osc = this.ctx.createOscillator();
+    osc.frequency.setValueAtTime(baseFreq, t);
+    osc.connect(modGain);
+    modGain.connect(gain);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(vol * 0.25, t + 0.1);
+    gain.gain.setTargetAtTime(0, t + 1.2, 0.4);
+    lfo.start(t);
+    osc.start(t);
+    lfo.stop(t + 1.8);
+    osc.stop(t + 1.8);
   }
 }
 

@@ -238,6 +238,9 @@ const App: React.FC = () => {
   const [showEisho, setShowEisho] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [lockShakeTarget, setLockShakeTarget] = useState<string | null>(null);
+  const [premiumToastVisible, setPremiumToastVisible] = useState(false);
+  const premiumToastTimerRef = useRef<number | null>(null);
   const [backgroundPlayback, setBackgroundPlayback] = useState<boolean>(() => {
     const saved = localStorage.getItem('sakura_ame_backgroundPlayback');
     return saved !== null ? saved === 'true' : true;
@@ -593,10 +596,18 @@ const App: React.FC = () => {
     audioEngine.setMasterVolume(nextMute ? 0 : masterVolume);
   };
 
+  const triggerPremiumLock = useCallback((targetId: string) => {
+    audioEngine.playLockSound();
+    setLockShakeTarget(targetId);
+    setTimeout(() => setLockShakeTarget(null), 500);
+    setPremiumToastVisible(true);
+    if (premiumToastTimerRef.current) window.clearTimeout(premiumToastTimerRef.current);
+    premiumToastTimerRef.current = window.setTimeout(() => setPremiumToastVisible(false), 3000);
+  }, []);
+
   const toggleAmbience = (type: AmbienceType) => {
     if (ambience[type].isPremium && !isPremium) {
-      setShowPremiumModal(true);
-      closePopups();
+      triggerPremiumLock(`ambience-${type}`);
       return;
     }
     const nextActive = !ambience[type].active;
@@ -613,8 +624,7 @@ const App: React.FC = () => {
     if (!preset) return;
 
     if (preset.isPremium && !isPremium) {
-      setShowPremiumModal(true);
-      closePopups();
+      triggerPremiumLock(`preset-${key}`);
       return;
     }
 
@@ -647,8 +657,7 @@ const App: React.FC = () => {
   const selectSong = (key: string) => {
     const song = SONGS[key];
     if (song.isPremium && !isPremium) {
-      setShowPremiumModal(true);
-      closePopups();
+      triggerPremiumLock(`song-${key}`);
       return;
     }
     setCurrentSongKey(key);
@@ -659,8 +668,7 @@ const App: React.FC = () => {
 
   const selectTheme = (theme: Theme) => {
     if (theme.isPremium && !isPremium) {
-      setShowPremiumModal(true);
-      closePopups();
+      triggerPremiumLock(`theme-${theme.id}`);
       return;
     }
     setCurrentTheme(theme);
@@ -891,7 +899,12 @@ const App: React.FC = () => {
     const song = SONGS[currentSongKey];
     if (!song) return;
     const step = song.steps[currentStepIndex];
-    if (!document.hidden) {
+    if (document.hidden && backgroundPlayback && !isMuted) {
+      const note = NOTES.find(n => n.id === step.noteId);
+      if (note) {
+        audioEngine.playTone(note.frequency, currentSoundTypeRef.current);
+      }
+    } else if (!document.hidden) {
       spawnDrop(step.noteId);
     }
     autoPlayTimeoutRef.current = window.setTimeout(() => {
@@ -904,7 +917,7 @@ const App: React.FC = () => {
         window.clearTimeout(autoPlayTimeoutRef.current);
       }
     };
-  }, [isAutoPlaying, currentSongKey, currentStepIndex, isTimerFinished, activeEffect]);
+  }, [isAutoPlaying, currentSongKey, currentStepIndex, isTimerFinished, activeEffect, backgroundPlayback, isMuted]);
 
   const animate = (time: number) => {
     if (isTimerFinished || document.hidden) {
@@ -971,12 +984,18 @@ const App: React.FC = () => {
     if (!hasStarted || isTimerFinished || rainDensity === 0 || isAutoPlaying) return;
     const intervalTime = Math.max(250, 2200 - (rainDensity * 1800));
     const timer = setInterval(() => {
-      if (document.hidden) return;
+      if (document.hidden) {
+        if (backgroundPlayback && !isMuted) {
+          const randomNote = NOTES[Math.floor(Math.random() * NOTES.length)];
+          audioEngine.playTone(randomNote.frequency, currentSoundTypeRef.current);
+        }
+        return;
+      }
       const randomNote = NOTES[Math.floor(Math.random() * NOTES.length)];
       spawnDrop(randomNote.id);
     }, intervalTime);
     return () => clearInterval(timer);
-  }, [hasStarted, isTimerFinished, rainDensity, isAutoPlaying, activeEffect]);
+  }, [hasStarted, isTimerFinished, rainDensity, isAutoPlaying, activeEffect, backgroundPlayback, isMuted]);
 
   const closePopups = () => {
     setShowMixer(false);
@@ -1200,7 +1219,7 @@ const App: React.FC = () => {
             <div className="space-y-1">
               {Object.entries(SONGS).map(([key, song]) => (
                 <button key={key} onClick={() => { selectSong(key); setShowEisho(false); }} className={`w-full flex justify-between items-center px-4 py-3 rounded-xl text-[10px] tracking-widest uppercase transition-all ${currentSongKey === key && isAutoPlaying ? 'bg-sakura-500/40 text-sakura-100 border border-sakura-300/30' : 'text-white/60 hover:text-white hover:bg-white/5'}`}>
-                  <span className="flex items-center gap-2">{song.name}{song.isPremium && !isPremium && <Lock size={12} className="text-amber-400" />}</span>
+                  <span className="flex items-center gap-2">{song.name}{song.isPremium && !isPremium && <Lock size={12} className={`text-amber-400${lockShakeTarget === `song-${key}` ? ' lock-shake' : ''}`} />}</span>
                 </button>
               ))}
             </div>
@@ -1303,7 +1322,7 @@ const App: React.FC = () => {
                     <div className="flex items-center gap-2 truncate">
                       {preset.icon} <span className="truncate">{preset.name}</span>
                     </div>
-                    {preset.isPremium && !isPremium && <Lock size={12} className="text-amber-400 shrink-0" />}
+                    {preset.isPremium && !isPremium && <Lock size={12} className={`text-amber-400 shrink-0${lockShakeTarget === `preset-${key}` ? ' lock-shake' : ''}`} />}
                   </button>
                 ))}
               </div>
@@ -1326,9 +1345,9 @@ const App: React.FC = () => {
                 <AmbienceToggle label="春風" type="wind" icon={<Wind size={16} />} ambience={ambience} toggle={toggleAmbience} />
                 <AmbienceToggle label="せせらぎ" type="river" icon={<Waves size={16} />} ambience={ambience} toggle={toggleAmbience} />
                 <AmbienceToggle label="鈴虫" type="crickets" icon={<Bug size={16} />} ambience={ambience} toggle={toggleAmbience} />
-                <AmbienceToggle label="風鈴" type="windChime" icon={<Bell size={16} />} ambience={ambience} toggle={toggleAmbience} isLocked={!isPremium} />
-                <AmbienceToggle label="寺鐘" type="thunder" icon={<Bell size={16} />} ambience={ambience} toggle={toggleAmbience} isLocked={!isPremium} />
-                <AmbienceToggle label="水琴窟" type="suikinkutsu" icon={<Droplets size={16} />} ambience={ambience} toggle={toggleAmbience} isLocked={!isPremium} />
+                <AmbienceToggle label="風鈴" type="windChime" icon={<Bell size={16} />} ambience={ambience} toggle={toggleAmbience} isLocked={!isPremium} shakeId="ambience-windChime" lockShakeTarget={lockShakeTarget} />
+                <AmbienceToggle label="寺鐘" type="thunder" icon={<Bell size={16} />} ambience={ambience} toggle={toggleAmbience} isLocked={!isPremium} shakeId="ambience-thunder" lockShakeTarget={lockShakeTarget} />
+                <AmbienceToggle label="水琴窟" type="suikinkutsu" icon={<Droplets size={16} />} ambience={ambience} toggle={toggleAmbience} isLocked={!isPremium} shakeId="ambience-suikinkutsu" lockShakeTarget={lockShakeTarget} />
               </div>
             </div>
           </div>
@@ -1368,8 +1387,7 @@ const App: React.FC = () => {
               <button key={preset.label}
                 onClick={() => {
                   if (preset.minutes > 15 && !isPremium) {
-                    setShowPremiumModal(true);
-                    closePopups();
+                    triggerPremiumLock(`timer-${preset.minutes}`);
                     return;
                   }
                   setTimerTotal(preset.minutes * 60);
@@ -1380,7 +1398,7 @@ const App: React.FC = () => {
                 className="w-full flex items-center justify-between p-5 rounded-2xl bg-black/40 hover:bg-black/60 transition-all shadow-xl">
                 <span className="text-sm font-serif text-stone-100 flex items-center gap-2">
                   {preset.label}
-                  {preset.isPremium && !isPremium && <Lock size={12} className="text-amber-400" />}
+                  {preset.isPremium && !isPremium && <Lock size={12} className={`text-amber-400${lockShakeTarget === `timer-${preset.minutes}` ? ' lock-shake' : ''}`} />}
                 </span>
                 <span className="text-2xl opacity-60">{preset.icon}</span>
               </button>
@@ -1398,7 +1416,7 @@ const App: React.FC = () => {
           <div className="space-y-2 mt-4">
             {THEMES.map(t => (
               <button key={t.id} onClick={() => selectTheme(t)} className={`w-full text-left px-5 py-4 rounded-2xl text-xs font-serif transition-all flex items-center justify-between ${currentTheme.id === t.id ? 'bg-sakura-900/50 text-sakura-100' : 'text-stone-100 hover:bg-white/10'}`}>
-                <span>{t.name}</span>{t.isPremium && !isPremium && <Lock size={12} className="text-yellow-400" />}
+                <span>{t.name}</span>{t.isPremium && !isPremium && <Lock size={12} className={`text-yellow-400${lockShakeTarget === `theme-${t.id}` ? ' lock-shake' : ''}`} />}
               </button>
             ))}
           </div>
@@ -1416,10 +1434,10 @@ const App: React.FC = () => {
               const premiumInstruments: string[] = ['Crystal', 'Ether', 'Deep'];
               const isLocked = premiumInstruments.includes(type) && !isPremium;
               return (
-                <button key={type} onClick={() => { if (!isLocked) { selectInstrument(type); } else { setShowPremiumModal(true); closePopups(); } }} className={`flex justify-between items-center px-4 py-3 rounded-xl text-[10px] tracking-widest uppercase transition-all border ${currentSoundType === type ? 'bg-sakura-900/40 border-sakura-500 text-sakura-100' : 'bg-black/20 border-white/5 text-stone-400 hover:text-white'}`}>
+                <button key={type} onClick={() => { if (!isLocked) { selectInstrument(type); } else { triggerPremiumLock(`instrument-${type}`); } }} className={`flex justify-between items-center px-4 py-3 rounded-xl text-[10px] tracking-widest uppercase transition-all border ${currentSoundType === type ? 'bg-sakura-900/40 border-sakura-500 text-sakura-100' : 'bg-black/20 border-white/5 text-stone-400 hover:text-white'}`}>
                   <span className="flex items-center gap-2">
                     {SOUND_LABELS[type]}
-                    {isLocked && <Lock size={12} className="text-amber-400" />}
+                    {isLocked && <Lock size={12} className={`text-amber-400${lockShakeTarget === `instrument-${type}` ? ' lock-shake' : ''}`} />}
                   </span>
                 </button>
               );
@@ -1427,6 +1445,32 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 有料機能ロックトースト */}
+      <div
+        className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[250] transition-all duration-300 pointer-events-none"
+        style={{
+          opacity: premiumToastVisible ? 1 : 0,
+          transform: `translateX(-50%) translateY(${premiumToastVisible ? '0px' : '12px'})`,
+        }}
+      >
+        <div
+          className="flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl"
+          style={{ background: 'rgba(15,10,20,0.88)', border: '1px solid rgba(236,72,153,0.25)', backdropFilter: 'blur(16px)', pointerEvents: premiumToastVisible ? 'auto' : 'none' }}
+        >
+          <div className="flex flex-col gap-0.5">
+            <span className="text-white/90 text-[11px] leading-snug tracking-wide">この機能は有料版でご利用いただけます。</span>
+            <span className="text-white/60 text-[11px] leading-snug tracking-wide">すべての機能が解放されます。</span>
+          </div>
+          <button
+            onClick={() => { setPremiumToastVisible(false); setShowPremiumModal(true); }}
+            className="ml-1 text-sakura-300 text-[11px] tracking-widest whitespace-nowrap hover:text-sakura-100 transition-colors"
+            style={{ pointerEvents: 'auto' }}
+          >
+            詳細
+          </button>
+        </div>
+      </div>
 
       {showPremiumModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
@@ -1519,10 +1563,10 @@ const App: React.FC = () => {
   );
 };
 
-const AmbienceToggle: React.FC<{ label: string, type: AmbienceType, icon: React.ReactNode, ambience: any, toggle: (t: AmbienceType) => void, isLocked?: boolean }> = ({ label, type, icon, ambience, toggle, isLocked }) => (
+const AmbienceToggle: React.FC<{ label: string, type: AmbienceType, icon: React.ReactNode, ambience: any, toggle: (t: AmbienceType) => void, isLocked?: boolean, shakeId?: string, lockShakeTarget?: string | null }> = ({ label, type, icon, ambience, toggle, isLocked, shakeId, lockShakeTarget }) => (
   <button onClick={() => toggle(type)} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${ambience[type].active ? 'bg-sakura-900/40 border-sakura-500 text-sakura-100' : 'bg-black/20 border-white/5 text-stone-500'}`}>
     <div className="flex items-center gap-3">{icon}<span className="text-[10px] uppercase tracking-widest font-bold">{label}</span></div>
-    {isLocked && ambience[type].isPremium && <Lock size={10} className="text-amber-400" />}
+    {isLocked && ambience[type].isPremium && <Lock size={10} className={`text-amber-400${shakeId && lockShakeTarget === shakeId ? ' lock-shake' : ''}`} />}
   </button>
 );
 
