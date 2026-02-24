@@ -98,11 +98,11 @@ export const THEMES: Theme[] = [
 ];
 
 export const SHISHIODOSHI_PRESETS: TimerPreset[] = [
-  { label: '煎茶 (Sencha)', minutes: 1, icon: '🍵', isPremium: false },
-  { label: '紅茶 (Black Tea)', minutes: 3, icon: '🫖', isPremium: false },
-  { label: '瞑想 (Meditation)', minutes: 15, icon: '🧘', isPremium: false },
-  { label: '読書 (Reading)', minutes: 30, icon: '📖', isPremium: true },
-  { label: 'うたた寝 (Nap)', minutes: 60, icon: '💤', isPremium: true },
+  { label: '煎茶 (Sencha)1分', minutes: 1, icon: '🍵', isPremium: false },
+  { label: '紅茶 (Black Tea)3分', minutes: 3, icon: '🫖', isPremium: false },
+  { label: '瞑想 (Meditation)15分', minutes: 15, icon: '🧘', isPremium: false },
+  { label: '読書 (Reading)30分', minutes: 30, icon: '📖', isPremium: true },
+  { label: 'うたた寝 (Nap)60分', minutes: 60, icon: '💤', isPremium: true },
 ];
 
 export const GRAVITY_SPEED = 12;
