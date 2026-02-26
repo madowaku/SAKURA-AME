@@ -7,6 +7,10 @@ class AudioEngine {
   private mainFilter: BiquadFilterNode | null = null;
   private shishiodoshiGain: GainNode | null = null;
 
+  // ポリフォニー制限: 同時発音数の追跡
+  private activeVoiceCount = 0;
+  private readonly MAX_VOICES = 24;
+
   private ambienceState: Record<AmbienceType, { active: boolean, volume: number, nodes?: AudioNode[] }> = {
     rain: { active: false, volume: 0 },
     wind: { active: false, volume: 0 },
@@ -30,6 +34,20 @@ class AudioEngine {
   private kapponBuffer: AudioBuffer | null = null;
   private landscapeTimer: number | null = null;
 
+  /**
+   * ワンショット音のクリーンアップヘルパー
+   * 指定ノードを全て disconnect() し、ボイスカウントをデクリメントする
+   */
+  private scheduleCleanup(triggerNode: OscillatorNode | AudioBufferSourceNode, allNodes: AudioNode[]) {
+    this.activeVoiceCount++;
+    triggerNode.onended = () => {
+      for (const node of allNodes) {
+        try { node.disconnect(); } catch (_) { /* already disconnected */ }
+      }
+      this.activeVoiceCount = Math.max(0, this.activeVoiceCount - 1);
+    };
+  }
+
   init() {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 44100 });
@@ -41,11 +59,12 @@ class AudioEngine {
       this.mainFilter.type = 'lowpass';
       this.mainFilter.frequency.value = 9000;
 
-      this.compressor.threshold.setValueAtTime(-24, this.ctx.currentTime);
-      this.compressor.knee.setValueAtTime(30, this.ctx.currentTime);
-      this.compressor.ratio.setValueAtTime(12, this.ctx.currentTime);
-      this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
-      this.compressor.release.setValueAtTime(0.25, this.ctx.currentTime);
+      // コンプレッサー: 長時間再生でも安定するよう調整
+      this.compressor.threshold.setValueAtTime(-20, this.ctx.currentTime);
+      this.compressor.knee.setValueAtTime(20, this.ctx.currentTime);
+      this.compressor.ratio.setValueAtTime(8, this.ctx.currentTime);
+      this.compressor.attack.setValueAtTime(0.005, this.ctx.currentTime);
+      this.compressor.release.setValueAtTime(0.15, this.ctx.currentTime);
 
       this.masterGain.connect(this.mainFilter);
       this.mainFilter.connect(this.compressor);
@@ -105,6 +124,9 @@ class AudioEngine {
 
   private triggerRandomLandscapeVoice() {
     if (!this.ctx || this.ctx.state !== 'running') return;
+    // ポリフォニー制限チェック
+    if (this.activeVoiceCount >= this.MAX_VOICES) return;
+
     const candidates: AmbienceType[] = [];
     if (this.ambienceState.birds.active) candidates.push('birds');
     if (this.ambienceState.smallBirds.active) candidates.push('smallBirds');
@@ -129,6 +151,8 @@ class AudioEngine {
 
   playTone(freq: number, type: SoundType = 'Suikin') {
     if (!this.ctx || !this.masterGain) return;
+    // ポリフォニー制限
+    if (this.activeVoiceCount >= this.MAX_VOICES) return;
 
     const t = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
@@ -136,6 +160,8 @@ class AudioEngine {
     gain.connect(this.masterGain);
 
     let stopTime = t + 6;
+    // クリーンアップ対象のノードを収集
+    const nodesToClean: AudioNode[] = [osc, gain];
 
     switch (type) {
       case 'Crystal': {
@@ -152,6 +178,7 @@ class AudioEngine {
         osc2.start(t);
         osc2.stop(t + 2.5);
         stopTime = t + 3.0;
+        nodesToClean.push(osc2);
         break;
       }
       case 'MusicBox': {
@@ -179,18 +206,16 @@ class AudioEngine {
         osc2.stop(t + 2.5);
 
         stopTime = t + 2.8;
+        nodesToClean.push(osc2, highpass);
         break;
       }
       case 'Ether': {
-        // 「空」: 浮遊感のある、ふわっとした音
-        osc.type = 'triangle'; // 三角波で柔らかく
+        osc.type = 'triangle';
 
-        // 2つ目のオシレーターでデチューン（音程を少しずらす）させてコーラス効果を作る
         const osc2 = this.ctx.createOscillator();
         osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(freq * 1.005, t); // わずかにずらす
+        osc2.frequency.setValueAtTime(freq * 1.005, t);
 
-        // フィルターで高音を削って丸くする
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.value = 2000;
@@ -199,10 +224,9 @@ class AudioEngine {
         osc2.connect(filter);
         filter.connect(gain);
 
-        // エンベロープ: アタックを遅くして「ふわっ」と入る
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.15, t + 0.3); // 0.3秒かけてゆっくり立ち上がる
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 4.0); // 長い余韻
+        gain.gain.linearRampToValueAtTime(0.15, t + 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 4.0);
 
         osc.frequency.setValueAtTime(freq, t);
 
@@ -210,26 +234,24 @@ class AudioEngine {
         osc2.stop(t + 4.0);
 
         stopTime = t + 4.0;
+        nodesToClean.push(osc2, filter);
         break;
       }
 
       case 'Deep': {
-        // 「深響」: 重低音を含む、深く沈むような音
         osc.type = 'sine';
 
-        // サブベース（1オクターブ下の音）を追加
         const subOsc = this.ctx.createOscillator();
         subOsc.type = 'sine';
         subOsc.frequency.setValueAtTime(freq * 0.5, t);
 
         const subGain = this.ctx.createGain();
-        subGain.gain.value = 0.6; // サブの音量バランス
+        subGain.gain.value = 0.6;
 
         subOsc.connect(subGain);
         subGain.connect(gain);
         osc.connect(gain);
 
-        // エンベロープ: 重厚感を出す
         gain.gain.setValueAtTime(0, t);
         gain.gain.linearRampToValueAtTime(0.5, t + 0.05);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
@@ -240,12 +262,12 @@ class AudioEngine {
         subOsc.stop(t + 3.5);
 
         stopTime = t + 3.5;
+        nodesToClean.push(subOsc, subGain);
         break;
       }
       case 'Bamboo': {
         osc.type = 'triangle';
 
-        // 少しだけノイズを加える（木の乾いた感じ）
         const noise = this.ctx.createBufferSource();
         const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.1, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -259,7 +281,7 @@ class AudioEngine {
 
         const lowpass = this.ctx.createBiquadFilter();
         lowpass.type = 'lowpass';
-        lowpass.frequency.value = 1200; // 木っぽく丸める
+        lowpass.frequency.value = 1200;
 
         osc.connect(lowpass);
         noise.connect(noiseGain);
@@ -276,19 +298,18 @@ class AudioEngine {
         noise.stop(t + 0.1);
 
         stopTime = t + 0.7;
+        nodesToClean.push(noise, noiseGain, lowpass);
         break;
       }
       case 'Suikin': {
-        // ★水琴の特徴付け: 水滴の落ちる「ポチャン」感と長い余韻
-        osc.type = 'sine'; // 純粋な正弦波のまま
+        osc.type = 'sine';
 
-        // ピッチエンベロープ: ほんの一瞬だけ高い音から入ることで「水滴感」が出る
-        osc.frequency.setValueAtTime(freq + 20, t); // わずかに高い音から開始
-        osc.frequency.exponentialRampToValueAtTime(freq, t + 0.08); // すぐに本来の音程へ
+        osc.frequency.setValueAtTime(freq + 20, t);
+        osc.frequency.exponentialRampToValueAtTime(freq, t + 0.08);
 
         gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.7, t + 0.05); // 0.02 -> 0.05 (アタックを少し遅くして柔らかく)
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 5.0); // 4.0 -> 5.0 (洞窟のような長い響き)
+        gain.gain.linearRampToValueAtTime(0.7, t + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 5.0);
         osc.connect(gain);
         stopTime = t + 5.0;
         break;
@@ -296,6 +317,8 @@ class AudioEngine {
     }
     osc.start(t);
     osc.stop(stopTime);
+    // 停止時に全ノードをクリーンアップ
+    this.scheduleCleanup(osc, nodesToClean);
   }
 
   createKapponSound() {
@@ -318,6 +341,10 @@ class AudioEngine {
       source.buffer = this.kapponBuffer;
       source.connect(this.shishiodoshiGain!);
       source.start();
+      // クリーンアップ
+      source.onended = () => {
+        try { source.disconnect(); } catch (_) { }
+      };
     };
     playOnce();
     setTimeout(playOnce, 1200);
@@ -358,13 +385,23 @@ class AudioEngine {
     clickOsc.stop(t + 0.2);
     noise.start(t);
     noise.stop(t + 0.05);
+
+    // クリーンアップ
+    clickOsc.onended = () => {
+      try { clickOsc.disconnect(); } catch (_) { }
+      try { gain.disconnect(); } catch (_) { }
+      try { noise.disconnect(); } catch (_) { }
+      try { noiseGain.disconnect(); } catch (_) { }
+    };
   }
 
   playTempleBell() {
     if (!this.ctx || !this.masterGain) return;
+    // ポリフォニー制限
+    if (this.activeVoiceCount >= this.MAX_VOICES) return;
 
     const t = this.ctx.currentTime;
-    const baseFreq = 130; // 少し上げる
+    const baseFreq = 130;
 
     const bellGain = this.ctx.createGain();
     bellGain.connect(this.masterGain);
@@ -404,6 +441,9 @@ class AudioEngine {
     fundamental.stop(t + 16);
     overtone.stop(t + 16);
     shimmer.stop(t + 3.0);
+
+    // 最も長いオシレーター（fundamental）の onended でクリーンアップ
+    this.scheduleCleanup(fundamental, [fundamental, overtone, shimmer, shimmerGain, bellGain]);
   }
 
 
@@ -468,15 +508,15 @@ class AudioEngine {
           source.loop = true;
           const filter = this.ctx!.createBiquadFilter();
           const gain = this.ctx!.createGain();
-          const panner = this.ctx!.createPanner();
-          panner.panningModel = 'equalpower';
+          // PannerNode → StereoPannerNode に置換（軽量化）
+          const panner = this.ctx!.createStereoPanner();
 
           if (type === 'wind') {
-            panner.positionX.setValueAtTime(-1, this.ctx!.currentTime);
+            panner.pan.setValueAtTime(-0.8, this.ctx!.currentTime);
             filter.type = 'lowpass';
             filter.frequency.value = 800;
           } else if (type === 'river') {
-            panner.positionX.setValueAtTime(0, this.ctx!.currentTime);
+            panner.pan.setValueAtTime(0, this.ctx!.currentTime);
             filter.type = 'lowpass';
             filter.frequency.value = 2000;
           }
@@ -513,14 +553,28 @@ class AudioEngine {
         const gE = this.ambienceState['rain'].nodes![4] as GainNode;
         const sD = this.ambienceState['rain'].nodes![0] as AudioBufferSourceNode;
         const sE = this.ambienceState['rain'].nodes![3] as AudioBufferSourceNode;
+        const allNodes = this.ambienceState['rain'].nodes!;
         gD.gain.setTargetAtTime(0, this.ctx!.currentTime, 1.2);
         gE.gain.setTargetAtTime(0, this.ctx!.currentTime, 1.2);
-        setTimeout(() => { try { sD.stop(); sE.stop(); } catch (e) { } }, 2000);
+        setTimeout(() => {
+          try { sD.stop(); sE.stop(); } catch (e) { }
+          // 全ノードを disconnect
+          for (const node of allNodes) {
+            try { node.disconnect(); } catch (_) { }
+          }
+        }, 2000);
       } else {
-        const gain = this.ambienceState[type as AmbienceType].nodes![1] as GainNode;
-        const source = this.ambienceState[type as AmbienceType].nodes![0] as AudioBufferSourceNode;
+        const allNodes = this.ambienceState[type as AmbienceType].nodes!;
+        const gain = allNodes[1] as GainNode;
+        const source = allNodes[0] as AudioBufferSourceNode;
         gain.gain.setTargetAtTime(0, this.ctx!.currentTime, 1.2);
-        setTimeout(() => { try { source.stop(); } catch (e) { } }, 2000);
+        setTimeout(() => {
+          try { source.stop(); } catch (e) { }
+          // 全ノードを disconnect
+          for (const node of allNodes) {
+            try { node.disconnect(); } catch (_) { }
+          }
+        }, 2000);
       }
       this.ambienceState[type as AmbienceType].nodes = undefined;
     }
@@ -529,8 +583,9 @@ class AudioEngine {
   private playUguisu(vol: number) {
     if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
-    const panner = this.ctx.createPanner();
-    panner.positionX.setValueAtTime(1.0, t);
+    // PannerNode → StereoPannerNode に置換
+    const panner = this.ctx.createStereoPanner();
+    panner.pan.setValueAtTime(0.8, t);
     const gain = this.ctx.createGain();
     gain.connect(panner);
     panner.connect(this.masterGain);
@@ -562,16 +617,19 @@ class AudioEngine {
     osc3.connect(gain);
     osc3.start(t3);
     osc3.stop(t3 + 0.8);
+    // 最後のオシレーター（osc3）でクリーンアップ
+    this.scheduleCleanup(osc3, [osc1, osc2, osc3, gain, panner]);
   }
 
   private playSmallBirds(vol: number) {
     if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
-    const panner = this.ctx.createPanner();
-    panner.positionX.setValueAtTime(0.8, t);
+    const panner = this.ctx.createStereoPanner();
+    panner.pan.setValueAtTime(0.6, t);
     const gain = this.ctx.createGain();
     gain.connect(panner);
     panner.connect(this.masterGain);
+    const oscs: OscillatorNode[] = [];
     for (let i = 0; i < 3; i++) {
       const offset = i * 0.3;
       gain.gain.setTargetAtTime(vol * 0.4, t + offset, 0.01);
@@ -582,14 +640,17 @@ class AudioEngine {
       osc.connect(gain);
       osc.start(t + offset);
       osc.stop(t + offset + 0.1);
+      oscs.push(osc);
     }
+    // 最後のオシレーターでクリーンアップ
+    this.scheduleCleanup(oscs[oscs.length - 1], [...oscs, gain, panner]);
   }
 
   private playWindChime(vol: number) {
     if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
-    const panner = this.ctx.createPanner();
-    panner.positionX.setValueAtTime(0.5, t);
+    const panner = this.ctx.createStereoPanner();
+    panner.pan.setValueAtTime(0.4, t);
     const gain = this.ctx.createGain();
     gain.connect(panner);
     panner.connect(this.masterGain);
@@ -601,14 +662,14 @@ class AudioEngine {
     osc.connect(gain);
     osc.start(t);
     osc.stop(t + 2);
+    this.scheduleCleanup(osc, [osc, gain, panner]);
   }
 
   private playDistantThunder(vol: number) {
     if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
-    const panner = this.ctx.createPanner();
-    panner.positionX.setValueAtTime(-1.0, t);
-    panner.positionZ.setValueAtTime(-3.0, t);
+    const panner = this.ctx.createStereoPanner();
+    panner.pan.setValueAtTime(-0.8, t);
     const gain = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'lowpass';
@@ -623,6 +684,8 @@ class AudioEngine {
     gain.gain.exponentialRampToValueAtTime(bellVol * 0.1, t + 9.0);
     gain.gain.linearRampToValueAtTime(0, t + 20.0);
     const frequencies = [38.5, 77.2, 115.8, 154.5, 231.6];
+    const allOscs: OscillatorNode[] = [];
+    const allNodes: AudioNode[] = [gain, filter, panner];
     frequencies.forEach((f, i) => {
       const osc = this.ctx!.createOscillator();
       osc.type = 'sine';
@@ -633,14 +696,18 @@ class AudioEngine {
       oscGain.connect(gain);
       osc.start(t);
       osc.stop(t + 20);
+      allOscs.push(osc);
+      allNodes.push(osc, oscGain);
     });
+    // 最初のオシレーターでクリーンアップ（全て同じ stopTime なので）
+    this.scheduleCleanup(allOscs[0], allNodes);
   }
 
   private playSuikinkutsu(vol: number) {
     if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
-    const panner = this.ctx.createPanner();
-    panner.positionX.setValueAtTime(0, t);
+    const panner = this.ctx.createStereoPanner();
+    panner.pan.setValueAtTime(0, t);
     const gain = this.ctx.createGain();
     gain.connect(panner);
     panner.connect(this.masterGain);
@@ -652,13 +719,14 @@ class AudioEngine {
     osc.connect(gain);
     osc.start(t);
     osc.stop(t + 5);
+    this.scheduleCleanup(osc, [osc, gain, panner]);
   }
 
   private playCricket(vol: number) {
     if (!this.ctx || !this.masterGain) return;
     const t = this.ctx.currentTime;
-    const panner = this.ctx.createPanner();
-    panner.positionX.setValueAtTime(-0.5, t);
+    const panner = this.ctx.createStereoPanner();
+    panner.pan.setValueAtTime(-0.4, t);
     const gain = this.ctx.createGain();
     const modGain = this.ctx.createGain();
     gain.connect(panner);
@@ -679,6 +747,8 @@ class AudioEngine {
     osc.start(t);
     lfo.stop(t + 1.8);
     osc.stop(t + 1.8);
+    // osc の onended でクリーンアップ
+    this.scheduleCleanup(osc, [osc, lfo, modGain, gain, panner]);
   }
 }
 
