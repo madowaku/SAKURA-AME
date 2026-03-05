@@ -324,6 +324,7 @@ const App: React.FC = () => {
   const activeNotificationRef = useRef<Notification | null>(null);
   const bgNotificationIntervalRef = useRef<number | null>(null);
   const timerRemainingRef = useRef<number | null>(timerRemaining);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   // スワイプ追跡用 refs
   const isDraggingRef = useRef(false);
@@ -431,6 +432,29 @@ const App: React.FC = () => {
     timerRemainingRef.current = timerRemaining;
   }, [timerRemaining]);
 
+  // Wake Lock を取得する関数
+  const requestWakeLock = useCallback(async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        wakeLockRef.current.addEventListener('release', () => {
+          console.log('Screen Wake Lock released:', wakeLockRef.current?.released);
+        });
+        console.log('Screen Wake Lock acquired');
+      } catch (err: any) {
+        console.error(`${err.name}, ${err.message}`);
+      }
+    }
+  }, []);
+
+  // Wake Lock を解放する関数
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current !== null) {
+      await wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+  }, []);
+
   // visibilitychange: バックグラウンド時のミュート & 通知
   useEffect(() => {
     const stopBgInterval = () => {
@@ -447,6 +471,10 @@ const App: React.FC = () => {
         setDrops([]);
         if (!isMuted) {
           audioEngine.setMasterVolume(masterVolume);
+        }
+        // タイマーが実行中なら再度 Wake Lock を取得
+        if (timerRemainingRef.current !== null && timerRemainingRef.current > 0) {
+          requestWakeLock();
         }
         // 通知を閉じる
         if (activeNotificationRef.current) {
@@ -479,7 +507,7 @@ const App: React.FC = () => {
       document.removeEventListener('visibilitychange', handleVisibility);
       stopBgInterval();
     };
-  }, [backgroundPlayback, isMuted, masterVolume, showBackgroundNotification]);
+  }, [backgroundPlayback, isMuted, masterVolume, showBackgroundNotification, requestWakeLock]);
 
   // Service Worker からの STOP_RAIN メッセージをリッスン
   useEffect(() => {
@@ -586,6 +614,7 @@ const App: React.FC = () => {
     setDrops([]);
     setIsAutoPlaying(false);
     setIsShishiodoshiTilting(true);
+    releaseWakeLock();
     setTimeout(() => {
       setIsShishiodoshiTilting(false);
       audioEngine.playShishiodoshi();
@@ -1045,6 +1074,7 @@ const App: React.FC = () => {
       setDrops([]);
       setParticles([]);
       setRipples([]);
+      releaseWakeLock();
     }, 1000);
   };
 
@@ -1090,6 +1120,7 @@ const App: React.FC = () => {
     // マスターフェードアウト中かもしれないので、現在のマスターボリュームに戻す
     audioEngine.setMasterVolume(masterVolume);
     triggerVisualRipple(dimensions.width / 2, dimensions.height / 2, '#fff', 50);
+    releaseWakeLock();
   };
 
   if (!hasStarted) {
@@ -1429,6 +1460,7 @@ const App: React.FC = () => {
                   setTimerTotal(preset.minutes * 60);
                   setTimerRemaining(preset.minutes * 60);
                   setIsTimerFinished(false);
+                  requestWakeLock();
                   closePopups();
                 }}
                 className="w-full flex items-center justify-between p-5 rounded-2xl bg-black/40 hover:bg-black/60 transition-all shadow-xl">
