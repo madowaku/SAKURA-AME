@@ -248,6 +248,28 @@ const App: React.FC = () => {
   const [purchaseStatus, setPurchaseStatus] = useState<'success' | 'canceled' | 'failed' | null>(null);
   const [isBillingReady, setIsBillingReady] = useState(false);
 
+  const handleRestorePurchase = async () => {
+    if (!isBillingReady || purchaseStatus === 'processing') return;
+    try {
+      setPurchaseStatus('processing');
+      const hasPurchased = await billingService.checkPurchaseHistory();
+      if (hasPurchased) {
+        setIsPremium(true);
+        localStorage.setItem('sakura_ame_premium', 'true');
+        setShowPremiumModal(false);
+        setPurchaseStatus('success');
+        setTimeout(() => setPurchaseStatus(null), 4000);
+      } else {
+        setPurchaseStatus('failed');
+        setTimeout(() => setPurchaseStatus(null), 2000);
+      }
+    } catch (error) {
+      console.error("Restore purchase error:", error);
+      setPurchaseStatus('failed');
+      setTimeout(() => setPurchaseStatus(null), 2000);
+    }
+  };
+
   const [isPremium, setIsPremium] = useState<boolean>(() => {
     return localStorage.getItem('sakura_ame_premium') === 'true';
   });
@@ -493,12 +515,9 @@ const App: React.FC = () => {
           // OFF → ミュート
           audioEngine.setMasterVolume(0);
         } else {
-          // ON → 即座に通知表示 & 1秒ごとに更新
+          // ON → 即座に通知表示のみ (1秒ごとの更新を削除)
           showBackgroundNotification(timerRemainingRef.current);
           stopBgInterval();
-          bgNotificationIntervalRef.current = window.setInterval(() => {
-            showBackgroundNotification(timerRemainingRef.current);
-          }, 1000);
         }
       }
     };
@@ -640,6 +659,37 @@ const App: React.FC = () => {
     audioEngine.setLayerVolume('landscape', landscapeVol);
     audioEngine.setMasterVolume(masterVolume);
     setHasStarted(true);
+
+    // Media Session API Integration
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: '桜雨 - SakuraAme',
+        artist: 'Madobeno',
+        album: 'Zen Healing',
+        artwork: [
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        audioEngine.resume();
+        navigator.mediaSession!.playbackState = 'playing';
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        audioEngine.setMasterVolume(0);
+        setIsMuted(true);
+        navigator.mediaSession!.playbackState = 'paused';
+      });
+
+      navigator.mediaSession.setActionHandler('stop', () => {
+        audioEngine.setMasterVolume(0);
+        setIsMuted(true);
+        navigator.mediaSession!.playbackState = 'none';
+      });
+      navigator.mediaSession.playbackState = 'playing';
+    }
   };
 
   const toggleMute = () => {
@@ -1560,6 +1610,14 @@ const App: React.FC = () => {
                 : isBillingReady
                   ? "UNLOCK FULL GARDEN"
                   : "Preparing..."}
+            </button>
+
+            <button
+              onClick={handleRestorePurchase}
+              disabled={!isBillingReady || purchaseStatus === 'processing'}
+              className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-stone-300 text-xs uppercase tracking-widest disabled:opacity-40 transition-colors"
+            >
+              購入の復元 (Restore Purchase)
             </button>
 
             <button
