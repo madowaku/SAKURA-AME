@@ -1,6 +1,6 @@
 {
   "packageId": "io.github.madobeno.twa",
-  "host": "madobeno.github.io",
+  "host": "madowaku.github.io",
   "name": "桜雨 - SakuraAme",
   "launcherName": "桜雨",
   "display": "standalone",
@@ -13,18 +13,18 @@
   "backgroundColor": "#1C1917",
   "enableNotifications": true,
   "startUrl": "/SAKURA-AME/",
-  "iconUrl": "https://madobeno.github.io/SAKURA-AME/icon-512.png",
-  "maskableIconUrl": "https://madobeno.github.io/SAKURA-AME/icon-512.png",
+  "iconUrl": "https://madowaku.github.io/SAKURA-AME/icon-512.png",
+  "maskableIconUrl": "https://madowaku.github.io/SAKURA-AME/icon-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android.keystore",
     "alias": "android"
   },
-  "appVersionName": "1.0.5",
+  "appVersionName": "1.0.6",
   "appVersionCode": 8,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://madobeno.github.io/SAKURA-AME/manifest.webmanifest",
+  "webManifestUrl": "https://madowaku.github.io/SAKURA-AME/manifest.webmanifest",
   "fallbackType": "customtabs",
   "features": {
     "playBilling": {
@@ -37,7 +37,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://madobeno.github.io/SAKURA-AME/",
+  "fullScopeUrl": "https://madowaku.github.io/SAKURA-AME/",
   "minSdkVersion": 21,
   "orientation": "portrait-primary",
   "fingerprints": [],
@@ -47,5 +47,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1.0.5"
+  "appVersion": "1.0.6"
 }

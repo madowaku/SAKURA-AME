@@ -664,7 +664,7 @@ const App: React.FC = () => {
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: '桜雨 - SakuraAme',
-        artist: 'Madobeno',
+        artist: 'Madowaku',
         album: 'Zen Healing',
         artwork: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -1366,7 +1366,7 @@ const App: React.FC = () => {
                 </button>
               </label>
               <a
-                href="https://madobeno.github.io/privacy.html"
+                href="https://madowaku.github.io/SAKURA-AME/privacy.html"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block px-4 py-3 rounded-xl text-[10px] tracking-widest uppercase text-white/70 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/10"
@@ -1374,7 +1374,7 @@ const App: React.FC = () => {
                 プライバシーポリシー
               </a>
               <a
-                href="https://madobeno.github.io/madowaku.github.io/"
+                href="https://madowaku.github.io/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block px-4 py-3 rounded-xl text-[10px] tracking-widest uppercase text-white/70 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/10"
