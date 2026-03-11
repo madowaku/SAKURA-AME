@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name">桜雨</string>
+    <string name="widget_description">日替わりの一言と共に、桜雨を起動</string>
+    <string name="widget_app_name">桜雨</string>
+    <string name="widget_icon_desc">桜雨アイコン</string>
+    <string name="widget_default_quote">雨の音に、心を寄せて</string>
+
+    <string-array name="widget_quotes">
+        <!-- SERENE_QUOTES (全77件) -->
+        <item>雨の音に、心を寄せて</item>
+        <item>静寂は、波紋のなかに</item>
+        <item>時の流れを、音に聴く</item>
+        <item>静かな庭で、自分と向き合う</item>
+        <item>一滴の雫が、世界を揺らす</item>
+        <item>雨上がり、虹を待つ心</item>
+        <item>風のささやき、花の溜息</item>
+        <item>立ち止まることも、旅のひとつ</item>
+        <item>今日の雨が、明日の花を咲かせる</item>
+        <item>雑音を捨て、雨音に溶ける</item>
+        <item>揺れる花びら、変わらぬ静けさ</item>
+        <item>雨の音は、空からの手紙</item>
+        <item>雨音の隙間へ、忘れものを探しに</item>
+        <item>風が書いた物語のひとかけら</item>
+        <item>さよならも言わず、春は透き通る</item>
+        <item>世界が眠るまで、庭の呼吸を聴いている</item>
+        <item>その渇きを、ひとしずくの音が癒やす</item>
+        <item>空が泣き止むまで、ここで静けさを編もう</item>
+        <item>静けさの中に、答えは落ちている</item>
+        <item>心の雨が、あなたの庭を潤す</item>
+        <item>一雨ごとに、春は深まり、心は透き通る</item>
+        <item>今日は、ただ雨音を聴くだけで</item>
+        <item>何もしない時間が、心を耕す</item>
+        <item>誰かのためではなく、自分のための静寂を</item>
+        <item>呼吸を整える、庭が深まる</item>
+        <item>春の雨は、優しく心をほどいてくれる</item>
+        <item>雨は、明日への準備</item>
+        <item>花びらが、雨を受け止めている</item>
+        <item>濡れた枝先に、春が宿る</item>
+        <item>まだ散らない花もある</item>
+        <item>雨粒が、枝先でひと息つく</item>
+        <item>まだ開かない蕾も、春を知っている</item>
+        <item>花の影が、水面でほどけていく</item>
+        <item>濡れた石畳に、やわらかな時間</item>
+        <item>風が止むと、雨の声が近づく</item>
+        <item>花びらは、急がない</item>
+        <item>庭の奥で、小さな春が揺れる</item>
+        <item>曇り空にも、光はある</item>
+        <item>雨は、静けさの輪郭を描く</item>
+        <item>濡れた空気が、心をやわらげる</item>
+        <item>きれいに散ることも、桜</item>
+        <item>ひとしずく、またひとしずく</item>
+        <item>春は、音のかたちをしている</item>
+        <item>遠くの雨が、こちらへ歩いてくる</item>
+        <item>花びらが、音に溶ける</item>
+        <item>まだ何も、決めなくていい</item>
+        <item>雨は、急かさない</item>
+        <item>濡れた土が、静かに息をする</item>
+        <item>枝の先に、今日が宿る</item>
+        <item>空は、低くやさしい</item>
+        <item>雨音が、部屋をやわらかくする</item>
+        <item>咲いていることに、理由はいらない</item>
+        <item>風は、花の記憶を運ぶ</item>
+        <item>春の庭は、まだ眠らない</item>
+        <item>音だけが、ここにある</item>
+        <item>花びらが、時間をほどく</item>
+        <item>雨は、遠い日の匂い</item>
+        <item>散ることも、春のひとつ</item>
+        <item>水たまりに、空が落ちる</item>
+        <item>桜の雨が、窓をそっと叩く夜</item>
+        <item>春雨の音に、今日の心をそっとゆだねて</item>
+        <item>ひとしずく、落ちるたびにほどける心</item>
+        <item>指先で、小さな波を起こしてみる</item>
+        <item>何もしなくても、雨は降る</item>
+        <item>言葉にならない、想いを音に</item>
+        <item>雨粒の、ひとつひとつに宿る</item>
+        <item>春の風が、雨雲を運ぶ</item>
+        <item>迷いは雨に溶けて、音になる</item>
+        <item>繰り返される、ひととき</item>
+        <item>いつかの涙が、音になる</item>
+        <item>重なる音が、心をほどく</item>
+        <item>池にたゆたう、花びらのように</item>
+        <item>その種は、やがて花になる</item>
+        <item>雨が音になり、音が雨になる</item>
+        <item>てのひらに、ひとひらの音</item>
+        <item>記憶はやがて、音になる</item>
+        <!-- ウィジェット追加分 (23件) -->
+        <item>雨だれの調べに、眠りを誘われて</item>
+        <item>桜は散って、また咲く</item>
+        <item>石の上にも、雨は降る</item>
+        <item>夜の雨は、静かな抱擁</item>
+        <item>軒先の水滴が、時を刻む</item>
+        <item>朝霧のなかに、花の気配</item>
+        <item>苔の上を、雨がそっと歩く</item>
+        <item>雲の切れ間に、春の光</item>
+        <item>竹林を揺らす、風と雨の二重奏</item>
+        <item>障子越しの雨音、やわらかな午後</item>
+        <item>石灯篭の影が、雨に揺れる</item>
+        <item>静かに降る雨も、やがて川になる</item>
+        <item>ひとりの時間に、花が寄り添う</item>
+        <item>雨宿りの軒下、世界が止まる</item>
+        <item>水面に映る空、もうひとつの世界</item>
+        <item>夕暮れの雨は、一日を包む</item>
+        <item>濡れた花弁の、透き通る美しさ</item>
+        <item>雨の日の窓辺は、小さな舞台</item>
+        <item>月と雨が、夜を織りなす</item>
+        <item>古い屋根を、雨がなぞる</item>
+        <item>深呼吸ひとつで、庭が広がる</item>
+        <item>待つことも、ひとつの花</item>
+        <item>今この瞬間の、雨を聴く</item>
+    </string-array>
+</resources>
