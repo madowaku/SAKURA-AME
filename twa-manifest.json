@@ -21,7 +21,7 @@
     "alias": "android"
   },
   "appVersionName": "1.0.9",
-  "appVersionCode": 11,
+  "appVersionCode": 12,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://madowaku.github.io/SAKURA-AME/manifest.webmanifest",

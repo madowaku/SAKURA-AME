@@ -628,6 +628,16 @@ const App: React.FC = () => {
     setCurrentQuote(SERENE_QUOTES[randomIndex]);
   }, []);
 
+  const changeQuote = useCallback(() => {
+    setCurrentQuote(prev => {
+      let randomIndex;
+      do {
+        randomIndex = Math.floor(Math.random() * SERENE_QUOTES.length);
+      } while (SERENE_QUOTES[randomIndex] === prev && SERENE_QUOTES.length > 1);
+      return SERENE_QUOTES[randomIndex];
+    });
+  }, []);
+
   const finishTimer = () => {
     setTimerRemaining(0);
     setDrops([]);
@@ -1295,8 +1305,8 @@ const App: React.FC = () => {
           </button>
 
           {currentQuote && (
-            <div className="px-2 animate-fade-in">
-              <p className="text-[10px] sm:text-xs font-serif text-white/80 tracking-[0.2em] leading-relaxed italic">
+            <div className="px-2 animate-fade-in group cursor-pointer" onClick={changeQuote}>
+              <p className="text-[10px] sm:text-xs font-serif text-white/80 group-hover:text-white transition-colors tracking-[0.2em] leading-relaxed italic">
                 {currentQuote}
               </p>
             </div>
@@ -1305,8 +1315,8 @@ const App: React.FC = () => {
       )}
 
       {isPremium && currentQuote && (
-        <div className="absolute top-8 left-8 z-40 px-2 animate-fade-in">
-          <p className="text-[10px] sm:text-xs font-serif text-white/80 tracking-[0.2em] leading-relaxed italic">
+        <div className="absolute top-8 left-8 z-40 px-2 animate-fade-in group cursor-pointer" onClick={changeQuote}>
+          <p className="text-[10px] sm:text-xs font-serif text-white/80 group-hover:text-white transition-colors tracking-[0.2em] leading-relaxed italic">
             {currentQuote}
           </p>
         </div>
@@ -1522,9 +1532,9 @@ const App: React.FC = () => {
               </button>
             ))}
           </div>
-          <p className="mt-4 text-[9px] text-stone-500 leading-relaxed tracking-wide text-center">
+          <p className="mt-4 text-[9px] text-white/40 leading-relaxed tracking-wide text-center">
             バックグラウンド再生は端末や省電力設定により途中で停止する場合があります。<br />
-            <span className="text-stone-600">Background playback may stop depending on your device or power settings.</span>
+            <span className="text-white/30">Background playback may stop depending on your device or power settings.</span>
           </p>
         </div>
       )}
