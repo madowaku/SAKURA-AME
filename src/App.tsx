@@ -1522,6 +1522,10 @@ const App: React.FC = () => {
               </button>
             ))}
           </div>
+          <p className="mt-4 text-[9px] text-stone-500 leading-relaxed tracking-wide text-center">
+            バックグラウンド再生は端末や省電力設定により途中で停止する場合があります。<br />
+            <span className="text-stone-600">Background playback may stop depending on your device or power settings.</span>
+          </p>
         </div>
       )}
 
@@ -1591,7 +1595,10 @@ const App: React.FC = () => {
       </div>
 
       {showPremiumModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+          onClick={(e) => { if (e.target === e.currentTarget && purchaseStatus !== 'processing') setShowPremiumModal(false); }}
+        >
           <div className="bg-stone-900 border border-sakura-500/30 rounded-3xl p-10 max-w-sm w-full shadow-2xl text-center space-y-6">
 
             <h3 className="text-2xl font-serif text-white tracking-widest">

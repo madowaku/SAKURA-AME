@@ -98,12 +98,15 @@ export const THEMES: Theme[] = [
 ];
 
 export const SHISHIODOSHI_PRESETS: TimerPreset[] = [
-  { label: '煎茶 (Sencha)1分', minutes: 1, icon: '🍵', isPremium: false },
-  { label: '紅茶 (Black Tea)3分', minutes: 3, icon: '🫖', isPremium: false },
-  { label: '瞑想 (Meditation)15分', minutes: 15, icon: '🧘', isPremium: false },
-  { label: '読書 (Reading)30分', minutes: 30, icon: '📖', isPremium: true },
-  { label: 'うたた寝 (Nap)60分', minutes: 60, icon: '💤', isPremium: true },
+  { label: '煎茶 Sencha · 1分', minutes: 1, icon: '🍵', isPremium: false },
+  { label: '紅茶 Black Tea · 3分', minutes: 3, icon: '🫖', isPremium: false },
+  { label: '瞑想 Meditation · 15分', minutes: 15, icon: '🧘', isPremium: false },
+  { label: '読書 Reading · 30分', minutes: 30, icon: '📖', isPremium: false },
+  { label: 'うたた寝 Nap · 60分', minutes: 60, icon: '💤', isPremium: false },
 ];
+
+export const BACKGROUND_PLAYBACK_NOTE =
+  'バックグラウンド再生は端末や省電力設定により途中で停止する場合があります。\nBackground playback may stop depending on your device or power settings.';
 
 export const GRAVITY_SPEED = 12;
 export const PAD_Y_PERCENT = 54;
