@@ -39,10 +39,4 @@
     }]
     
   </string>  
-  <string name="widget_title">桜雨</string>
-  <string name="widget_subtitle">今日の桜と雨をすぐ見る</string>
-  <string name="widget_button">開く</string>
-  <string name="widget_description">桜雨アプリをすぐ開けるホーム画面ウィジェット</string>
-  <string name="widget_icon_description">桜雨アプリのアイコン</string>
 </resources>
-

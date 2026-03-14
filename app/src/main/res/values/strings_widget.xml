@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name">桜雨</string>
+    <string-array name="serene_quotes">
+        <item>「雨だれ落ちる、桜咲く。」</item>
+        <item>「静寂の中、花びらが舞う。」</item>
+        <item>「雨音に耳をすませて。」</item>
+        <item>「一輪の桜、雨に濡れて。」</item>
+        <item>「心を落ち着ける、優しい雨。」</item>
+        <item>「雨の匂いに、春を感じる。」</item>
+        <item>「少し立ち止まって、雨粒を数える。」</item>
+    </string-array>
+</resources>
