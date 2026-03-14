@@ -20,8 +20,8 @@
     "path": "./android.keystore",
     "alias": "android"
   },
-  "appVersionName": "1.1.3",
-  "appVersionCode": 14,
+  "appVersionName": "1.1.4",
+  "appVersionCode": 15,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://madowaku.github.io/SAKURA-AME/manifest.webmanifest",
@@ -47,5 +47,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1.1.3"
+  "appVersion": "1.1.4"
 }
