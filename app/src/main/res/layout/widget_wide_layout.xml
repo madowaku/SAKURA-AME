@@ -1,49 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
+    android:id="@+id/widget_wide_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
+    android:background="@drawable/widget_wide_background"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="14dp"
-    android:paddingTop="12dp"
-    android:paddingEnd="14dp"
-    android:paddingBottom="12dp">
+    android:paddingStart="18dp"
+    android:paddingTop="14dp"
+    android:paddingEnd="18dp"
+    android:paddingBottom="14dp">
 
     <ImageView
-        android:layout_width="20dp"
-        android:layout_height="20dp"
+        android:id="@+id/widget_wide_icon"
+        android:layout_width="18dp"
+        android:layout_height="18dp"
         android:contentDescription="@string/widget_icon_description"
         android:src="@mipmap/ic_launcher" />
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
+        android:layout_marginStart="12dp"
         android:layout_weight="1"
-        android:gravity="center_vertical"
         android:orientation="vertical">
 
         <TextView
+            android:id="@+id/widget_wide_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="sans-serif-medium"
             android:includeFontPadding="false"
             android:text="@string/widget_title"
-            android:textColor="#F7F2F4"
+            android:textColor="#F6F2F4"
             android:textSize="15sp" />
 
         <TextView
+            android:id="@+id/widget_wide_subtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
             android:ellipsize="end"
             android:fontFamily="sans-serif"
+            android:gravity="end"
             android:includeFontPadding="false"
             android:maxLines="1"
-            android:text="@string/widget_subtitle"
-            android:textColor="#D9D6DE"
-            android:textSize="11sp" />
+            android:text="@string/widget_wide_subtitle"
+            android:textColor="#D7D6DE"
+            android:textSize="12sp" />
     </LinearLayout>
 </LinearLayout>

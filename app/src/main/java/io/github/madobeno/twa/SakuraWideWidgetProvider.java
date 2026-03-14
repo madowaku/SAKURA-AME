@@ -7,11 +7,11 @@ import android.content.Context;
 import android.content.Intent;
 import android.widget.RemoteViews;
 
-public class SakuraWidgetProvider extends AppWidgetProvider {
+public class SakuraWideWidgetProvider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
-            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_layout);
+            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_wide_layout);
 
             Intent intent = new Intent(context, LauncherActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -22,7 +22,7 @@ public class SakuraWidgetProvider extends AppWidgetProvider {
                     PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
 
-            views.setOnClickPendingIntent(R.id.widget_root, pendingIntent);
+            views.setOnClickPendingIntent(R.id.widget_wide_root, pendingIntent);
             appWidgetManager.updateAppWidget(appWidgetId, views);
         }
     }
