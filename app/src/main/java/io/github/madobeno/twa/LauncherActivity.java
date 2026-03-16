@@ -15,7 +15,6 @@
  */
 package io.github.madobeno.twa;
 
-import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Build;
@@ -25,7 +24,7 @@ import android.os.Bundle;
 
 public class LauncherActivity
         extends com.google.androidbrowserhelper.trusted.LauncherActivity {
-    public static final String EXTRA_LAUNCH_PATH = "io.github.madobeno.twa.extra.LAUNCH_PATH";
+    
 
     
 
@@ -47,24 +46,9 @@ public class LauncherActivity
     protected Uri getLaunchingUrl() {
         // Get the original launch Url.
         Uri uri = super.getLaunchingUrl();
-        Intent intent = getIntent();
-        if (intent == null) {
-            return uri;
-        }
 
-        String launchPath = intent.getStringExtra(EXTRA_LAUNCH_PATH);
-        if (launchPath == null || launchPath.trim().isEmpty()) {
-            return uri;
-        }
+        
 
-        if (uri == null) {
-            return Uri.parse(launchPath);
-        }
-
-        if (launchPath.startsWith("http://") || launchPath.startsWith("https://")) {
-            return Uri.parse(launchPath);
-        }
-
-        return uri.buildUpon().encodedPath(launchPath).build();
+        return uri;
     }
 }
