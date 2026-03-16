@@ -40,14 +40,6 @@
     
   </string>  
   <string name="widget_title">桜雨</string>
-  <string name="widget_subtitle">雨が、音になる。</string>
-  <string name="widget_description">桜雨の静けさをひらく2x1ホーム画面ウィジェット</string>
-  <string name="widget_icon_description">桜雨アプリのアイコン</string>
-
-
+  <string name="widget_subtitle">2x1 widget</string>
+  <string name="widget_description">桜雨をすぐ開ける 2x1 ホーム画面ウィジェット</string>
 </resources>
-
-
-
-
-

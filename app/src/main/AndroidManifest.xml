@@ -193,6 +193,18 @@
             </intent-filter>
         </service>
 
+        <receiver
+            android:name=".SakuraWidgetProvider"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_sakura_info" />
+        </receiver>
+
         
             <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity" />
         
@@ -223,20 +235,5 @@
             </intent-filter>
         </service> 
         
-
-        <!-- Widget Receiver -->
-        <receiver android:name="io.github.madobeno.twa.SakuraWidgetProvider" android:exported="true">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/sakura_widget_provider" />
-        </receiver>
-
     </application>
 </manifest>
-
-
-
-
