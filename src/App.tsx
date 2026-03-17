@@ -223,6 +223,16 @@ const SERENE_QUOTES = [
   "記憶はやがて、音になる",
 ];
 
+const ONBOARDING_HINTS = [
+  "花びらをなぞると、音が鳴ります。",
+  "言葉に触れると、次の一行が現れます。",
+  "タイマーや音色は、端のボタンから開けます。",
+] as const;
+
+const ONBOARDING_STORAGE_KEY = 'sakura_ame_onboarding_seen';
+const ONBOARDING_STEP_MS = 3600;
+const ONBOARDING_FADE_MS = 900;
+
 const App: React.FC = () => {
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [hasStarted, setHasStarted] = useState(false);
@@ -338,6 +348,13 @@ const App: React.FC = () => {
   });
 
   const [currentQuote, setCurrentQuote] = useState("");
+  const [showOnboardingHint, setShowOnboardingHint] = useState(() => {
+    return localStorage.getItem(ONBOARDING_STORAGE_KEY) !== 'true';
+  });
+  const [onboardingHintIndex, setOnboardingHintIndex] = useState(0);
+  const [isOnboardingHintVisible, setIsOnboardingHintVisible] = useState(() => {
+    return localStorage.getItem(ONBOARDING_STORAGE_KEY) !== 'true';
+  });
 
   const [loginStreak, setLoginStreak] = useState<number>(1);
   const [justResetStreak, setJustResetStreak] = useState(false);
@@ -347,6 +364,8 @@ const App: React.FC = () => {
   const bgNotificationIntervalRef = useRef<number | null>(null);
   const timerRemainingRef = useRef<number | null>(timerRemaining);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const onboardingTimeoutRef = useRef<number | null>(null);
+  const onboardingFadeTimeoutRef = useRef<number | null>(null);
 
   // スワイプ追跡用 refs
   const isDraggingRef = useRef(false);
@@ -637,6 +656,54 @@ const App: React.FC = () => {
       return SERENE_QUOTES[randomIndex];
     });
   }, []);
+
+  const clearOnboardingTimers = useCallback(() => {
+    if (onboardingTimeoutRef.current !== null) {
+      window.clearTimeout(onboardingTimeoutRef.current);
+      onboardingTimeoutRef.current = null;
+    }
+    if (onboardingFadeTimeoutRef.current !== null) {
+      window.clearTimeout(onboardingFadeTimeoutRef.current);
+      onboardingFadeTimeoutRef.current = null;
+    }
+  }, []);
+
+  const finishOnboardingHints = useCallback(() => {
+    clearOnboardingTimers();
+    localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
+    setIsOnboardingHintVisible(false);
+    onboardingFadeTimeoutRef.current = window.setTimeout(() => {
+      setShowOnboardingHint(false);
+    }, ONBOARDING_FADE_MS);
+  }, [clearOnboardingTimers]);
+
+  const advanceOnboardingHint = useCallback(() => {
+    setOnboardingHintIndex((prev) => {
+      if (prev >= ONBOARDING_HINTS.length - 1) {
+        finishOnboardingHints();
+        return prev;
+      }
+      return prev + 1;
+    });
+  }, [finishOnboardingHints]);
+
+  useEffect(() => {
+    if (!showOnboardingHint) {
+      clearOnboardingTimers();
+      return;
+    }
+
+    setIsOnboardingHintVisible(true);
+    onboardingTimeoutRef.current = window.setTimeout(() => {
+      advanceOnboardingHint();
+    }, ONBOARDING_STEP_MS);
+
+    return clearOnboardingTimers;
+  }, [advanceOnboardingHint, clearOnboardingTimers, onboardingHintIndex, showOnboardingHint]);
+
+  useEffect(() => {
+    return clearOnboardingTimers;
+  }, [clearOnboardingTimers]);
 
   const finishTimer = () => {
     setTimerRemaining(0);
@@ -1274,6 +1341,21 @@ const App: React.FC = () => {
       />
 
       <SakuraTree streak={loginStreak} justReset={justResetStreak} />
+
+      {showOnboardingHint && (
+        <div className="absolute inset-0 z-[45] flex items-center justify-center px-6 pointer-events-none">
+          <button
+            type="button"
+            onClick={advanceOnboardingHint}
+            className={`pointer-events-auto onboarding-hint-panel ${isOnboardingHintVisible ? 'onboarding-hint-enter' : 'onboarding-hint-exit'}`}
+            aria-label="初回案内を進める"
+          >
+            <p className="text-[13px] sm:text-[15px] leading-[2] tracking-[0.18em] text-white/88">
+              {ONBOARDING_HINTS[onboardingHintIndex]}
+            </p>
+          </button>
+        </div>
+      )}
 
 
       {isTimerFinished && (

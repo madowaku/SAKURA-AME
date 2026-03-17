@@ -153,6 +153,9 @@ android {
     buildTypes {
         release {
             minifyEnabled true
+            // Keep resource shrinking off while we verify widget discovery in closed testing.
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
     compileOptions {

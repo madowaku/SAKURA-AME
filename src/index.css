@@ -75,3 +75,47 @@ body {
   display: inline-block;
   transform-origin: center 70%;
 }
+
+@keyframes onboarding-hint-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes onboarding-hint-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.onboarding-hint-panel {
+  max-width: min(36rem, calc(100vw - 3rem));
+  padding: 1rem 1.25rem;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, rgba(24, 18, 24, 0.26), rgba(10, 8, 12, 0.4));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  text-align: center;
+}
+
+.onboarding-hint-enter {
+  animation: onboarding-hint-fade-in 900ms ease-out forwards;
+}
+
+.onboarding-hint-exit {
+  animation: onboarding-hint-fade-out 900ms ease-in forwards;
+}
