@@ -1420,7 +1420,7 @@ const App: React.FC = () => {
 
       <div className="absolute bottom-20 right-8 z-40 flex flex-col items-end gap-3">
         {showEisho && (
-          <div className="mb-2 bg-stone-950/20 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 w-56 animate-in slide-in-from-right-4 shadow-[0_15px_35px_rgba(0,0,0,0.5)]">
+          <OverlayPanel onClose={closePopups} alignClassName="items-end justify-end" panelClassName="mb-20 w-56 p-6 animate-in slide-in-from-right-4">
             <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
               <h3 className="text-white font-serif text-[10px] tracking-[0.3em] uppercase font-bold">詠唱選択</h3>
               <button onClick={closePopups} className="text-white/50 hover:text-white transition-colors"><X size={16} /></button>
@@ -1432,10 +1432,10 @@ const App: React.FC = () => {
                 </button>
               ))}
             </div>
-          </div>
+          </OverlayPanel>
         )}
         {showSettings && (
-          <div className="mb-2 bg-stone-950/20 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 w-56 animate-in slide-in-from-right-4 shadow-[0_15px_35px_rgba(0,0,0,0.5)]">
+          <OverlayPanel onClose={closePopups} alignClassName="items-end justify-end" panelClassName="mb-20 w-56 p-6 animate-in slide-in-from-right-4">
             <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
               <h3 className="text-white font-serif text-[10px] tracking-[0.3em] uppercase font-bold">設定</h3>
               <button onClick={closePopups} className="text-white/50 hover:text-white transition-colors"><X size={16} /></button>
@@ -1496,19 +1496,19 @@ const App: React.FC = () => {
                 </button>
               )}
             </div>
-          </div>
+          </OverlayPanel>
         )}
         <button onClick={() => { if (isAutoPlaying) setIsAutoPlaying(false); else { closePopups(); setShowEisho(!showEisho); } }} className={`p-5 rounded-full border transition-all backdrop-blur-3xl shadow-2xl ${isAutoPlaying ? 'bg-sakura-500/30 border-sakura-400 text-sakura-100 shadow-[0_0_20px_rgba(236,72,153,0.3)] animate-pulse' : 'bg-black/5 border-white/10 text-white hover:bg-black/15'}`}>{isAutoPlaying ? <Pause size={24} /> : <Play size={24} />}</button>
         <button onClick={() => { closePopups(); setShowSettings(!showSettings); }} className={`p-5 rounded-full border transition-all backdrop-blur-3xl shadow-2xl ${showSettings ? 'bg-sakura-900/50 border-sakura-500/50 text-sakura-200' : 'bg-black/5 border-white/10 text-white hover:bg-black/15'}`}><Settings size={24} /></button>
       </div>
 
       {showMixer && (
-        <div className="absolute bottom-36 left-4 sm:left-8 w-80 bg-stone-950/10 backdrop-blur-3xl border border-white/10 rounded-3xl p-8 z-50 animate-in slide-in-from-bottom-4 overflow-hidden">
+        <OverlayPanel onClose={closePopups} alignClassName="items-end justify-start" panelClassName="mb-28 w-[min(20rem,100%)] p-6 sm:p-8 animate-in slide-in-from-bottom-4 overflow-hidden">
           <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
             <h3 className="text-white font-serif text-sm tracking-[0.3em] uppercase font-bold">庭園の調べ</h3>
             <button onClick={closePopups} className="text-white/50 hover:text-white transition-colors"><X size={20} /></button>
           </div>
-          <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+          <div className="space-y-6 max-h-[min(62svh,34rem)] overflow-y-auto pr-2">
             <div className="space-y-4">
               <h4 className="text-[10px] text-white/50 uppercase tracking-[0.2em] font-bold">基本調整</h4>
               <LayerSlider label="雨の密度" icon={<CloudRain size={12} />} value={rainDensity} accent="accent-sakura-400" onChange={(v) => setRainDensity(v)} />
@@ -1560,7 +1560,7 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </OverlayPanel>
       )}
 
       {/* Main Drum UI */}
@@ -1586,12 +1586,12 @@ const App: React.FC = () => {
       </div>
 
       {showTimer && (
-        <div className="absolute top-24 right-4 sm:right-24 w-72 bg-stone-950/10 backdrop-blur-3xl border border-white/10 rounded-3xl p-8 z-50 animate-in zoom-in-95">
+        <OverlayPanel onClose={closePopups} alignClassName="items-start justify-end pt-20" panelClassName="w-[min(18rem,100%)] p-6 sm:p-8 animate-in zoom-in-95">
           <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
             <h3 className="text-white font-serif text-sm tracking-[0.3em] uppercase font-bold">Zen Meditation</h3>
             <button onClick={closePopups} className="text-white/50 hover:text-white transition-colors"><X size={20} /></button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[min(58svh,28rem)] overflow-y-auto pr-1">
             {SHISHIODOSHI_PRESETS.map((preset) => (
               <button key={preset.label}
                 onClick={() => {
@@ -1618,32 +1618,32 @@ const App: React.FC = () => {
             バックグラウンド再生は端末や省電力設定により途中で停止する場合があります。<br />
             <span className="text-white/30">Background playback may stop depending on your device or power settings.</span>
           </p>
-        </div>
+        </OverlayPanel>
       )}
 
       {showThemes && (
-        <div className="absolute bottom-36 left-4 sm:left-8 w-72 bg-stone-950/10 backdrop-blur-3xl border border-white/10 rounded-3xl p-8 z-50 animate-in slide-in-from-bottom-4">
+        <OverlayPanel onClose={closePopups} alignClassName="items-end justify-start" panelClassName="mb-28 w-[min(18rem,100%)] p-6 sm:p-8 animate-in slide-in-from-bottom-4">
           <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
             <h3 className="text-white font-serif text-sm tracking-[0.3em] uppercase font-bold">背景切替</h3>
             <button onClick={closePopups} className="text-white/50 hover:text-white transition-colors"><X size={20} /></button>
           </div>
-          <div className="space-y-2 mt-4">
+          <div className="space-y-2 mt-4 max-h-[min(56svh,26rem)] overflow-y-auto pr-1">
             {THEMES.map(t => (
               <button key={t.id} onClick={() => selectTheme(t)} className={`w-full text-left px-5 py-4 rounded-2xl text-xs font-serif transition-all flex items-center justify-between ${currentTheme.id === t.id ? 'bg-sakura-900/50 text-sakura-100' : 'text-stone-100 hover:bg-white/10'}`}>
                 <span>{t.name}</span>{t.isPremium && !isPremium && <Lock size={12} className={`text-yellow-400${lockShakeTarget === `theme-${t.id}` ? ' lock-shake' : ''}`} />}
               </button>
             ))}
           </div>
-        </div>
+        </OverlayPanel>
       )}
 
       {showInstruments && (
-        <div className="absolute bottom-36 left-4 sm:left-8 w-72 bg-stone-950/10 backdrop-blur-3xl border border-white/10 rounded-3xl p-8 z-50 animate-in slide-in-from-bottom-4 shadow-3xl">
+        <OverlayPanel onClose={closePopups} alignClassName="items-end justify-start" panelClassName="mb-28 w-[min(18rem,100%)] p-6 sm:p-8 animate-in slide-in-from-bottom-4 shadow-3xl">
           <div className="flex justify-between items-center mb-8 border-b border-white/10 pb-4">
             <h3 className="text-white font-serif text-sm tracking-[0.3em] uppercase font-bold">音色選択</h3>
             <button onClick={closePopups} className="text-white/50 hover:text-white transition-colors"><X size={20} /></button>
           </div>
-          <div className="grid grid-cols-2 gap-2 mt-4">
+          <div className="grid grid-cols-2 gap-2 mt-4 max-h-[min(56svh,24rem)] overflow-y-auto pr-1">
             {(['Suikin', 'Bamboo', 'Crystal', 'MusicBox', 'Ether', 'Deep'] as SoundType[]).map(type => {
               const premiumInstruments: string[] = ['Crystal', 'Ether', 'Deep'];
               const isLocked = premiumInstruments.includes(type) && !isPremium;
@@ -1657,7 +1657,7 @@ const App: React.FC = () => {
               );
             })}
           </div>
-        </div>
+        </OverlayPanel>
       )}
 
       {/* 有料機能ロックトースト */}
@@ -1793,6 +1793,25 @@ const AmbienceToggle: React.FC<{ label: string, type: AmbienceType, icon: React.
     <div className="flex items-center gap-3">{icon}<span className="text-[10px] uppercase tracking-widest font-bold">{label}</span></div>
     {isLocked && ambience[type].isPremium && <Lock size={10} className={`text-amber-400${shakeId && lockShakeTarget === shakeId ? ' lock-shake' : ''}`} />}
   </button>
+);
+
+const OverlayPanel: React.FC<{
+  children: React.ReactNode;
+  onClose: () => void;
+  alignClassName: string;
+  panelClassName: string;
+}> = ({ children, onClose, alignClassName, panelClassName }) => (
+  <div
+    className={`fixed inset-0 z-50 flex ${alignClassName} px-4 sm:px-8 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-black/10`}
+    onClick={onClose}
+  >
+    <div
+      className={`pointer-events-auto max-h-[calc(100svh-4.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-white/10 bg-stone-950/20 backdrop-blur-3xl shadow-[0_15px_35px_rgba(0,0,0,0.5)] ${panelClassName}`}
+      onClick={(event) => event.stopPropagation()}
+    >
+      {children}
+    </div>
+  </div>
 );
 
 const LayerSlider: React.FC<{ label: string, icon: React.ReactNode, value: number, accent: string, onChange: (v: number) => void }> = ({ label, icon, value, accent, onChange }) => (
