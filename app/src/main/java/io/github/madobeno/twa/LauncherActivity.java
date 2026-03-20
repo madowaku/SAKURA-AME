@@ -25,7 +25,7 @@ import android.os.Bundle;
 public class LauncherActivity
         extends com.google.androidbrowserhelper.trusted.LauncherActivity {
     
-	public static final String EXTRA_LAUNCH_PATH = 	"org.chromium.chrome.browser.trusted.EXTRA_LAUNCH_PATH";
+
     
 
     @Override

@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.widget.RemoteViews;
 
 public class SakuraWidgetProvider extends AppWidgetProvider {
+    private static final String WIDGET_LAUNCH_PATH = "/SAKURA-AME/";
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
@@ -24,6 +25,7 @@ public class SakuraWidgetProvider extends AppWidgetProvider {
 
     private static PendingIntent createLaunchPendingIntent(Context context) {
         Intent intent = new Intent(context, LauncherActivity.class);
+        intent.putExtra(LauncherActivity.EXTRA_LAUNCH_PATH, WIDGET_LAUNCH_PATH);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
         return PendingIntent.getActivity(
