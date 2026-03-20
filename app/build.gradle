@@ -57,8 +57,8 @@ android {
         applicationId "io.github.madobeno.twa"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 21
-        versionName "1.1.9"
+        versionCode 22
+        versionName "1.2.0"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -151,11 +151,11 @@ android {
         
     }
     buildTypes {
-        release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
+    release {
+        minifyEnabled true
+        proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
     }
+}
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8

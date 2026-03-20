@@ -7,15 +7,24 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Node
+node_modules/
+dist/
+dist-ssr/
 *.local
 
-# Editor directories and files
+# Gradle / Android build outputs
+.gradle/
+**/build/
+*.idsig
+*.apk
+*.aab
+local.properties
+
+# Editor / OS files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -23,23 +32,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# === Secrets ===
-*.keystore
-
-# === Bubblewrap / TWA ===
-android/
-build/
-*.apk
-*.aab
-
-# === Node / misc ===
-node_modules/
-.DS_Store
-# Bubblewrap / TWA
-android/
-build/
-*.apk
-*.aab
-
-# Android signing keys
+# Secrets / signing
 *.keystore
