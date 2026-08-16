@@ -56,9 +56,9 @@ android {
     defaultConfig {
         applicationId "io.github.madobeno.twa"
         minSdkVersion 21
-        targetSdkVersion 35
-        versionCode 23
-        versionName "1.2.1"
+        targetSdkVersion 36
+        versionCode 25
+        versionName "1.2.3"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -150,9 +150,18 @@ android {
 
         
     }
+    signingConfigs {
+        release {
+            storeFile file('../android.keystore')
+            storePassword 'jumPhoPsteP_4'
+            keyAlias 'android'
+            keyPassword 'jumPhoPsteP_4'
+        }
+    }
     buildTypes {
         release {
             minifyEnabled true
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -203,7 +212,8 @@ task generateShorcutsFile {
 preBuild.dependsOn(generateShorcutsFile)
 
 repositories {
-    
+    google()
+    mavenCentral()
 }
 
 dependencies {
